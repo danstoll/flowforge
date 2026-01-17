@@ -12,6 +12,7 @@ import { hashRoutes } from './routes/hash';
 import { encryptRoutes } from './routes/encrypt';
 import { decryptRoutes } from './routes/decrypt';
 import { keyRoutes } from './routes/key';
+import { jwtRoutes } from './routes/jwt';
 import { openApiSpec } from './openapi';
 
 const app = express();
@@ -57,6 +58,7 @@ app.use('/api/v1/crypto', hashRoutes);
 app.use('/api/v1/crypto', encryptRoutes);
 app.use('/api/v1/crypto', decryptRoutes);
 app.use('/api/v1/crypto', keyRoutes);
+app.use('/api/v1/crypto', jwtRoutes);
 
 // 404 handler
 app.use((_req, res) => {

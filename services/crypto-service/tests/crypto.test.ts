@@ -38,6 +38,35 @@ describe('Crypto Service', () => {
       expect(res.body.data.hash).toBe('098f6bcd4621d373cade4e832627b4f6');
     });
 
+    it('should hash data with bcrypt', async () => {
+      const res = await request(app)
+        .post('/api/v1/crypto/hash')
+        .send({
+          data: 'password123',
+          algorithm: 'bcrypt',
+          options: { rounds: 4 }, // Low rounds for fast test
+        });
+      
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.hash).toMatch(/^\$2[ab]\$\d{2}\$/);
+      expect(res.body.data.algorithm).toBe('bcrypt');
+    });
+
+    it('should hash data with argon2', async () => {
+      const res = await request(app)
+        .post('/api/v1/crypto/hash')
+        .send({
+          data: 'password123',
+          algorithm: 'argon2',
+        });
+      
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.hash).toMatch(/^\$argon2/);
+      expect(res.body.data.algorithm).toBe('argon2');
+    });
+
     it('should return validation error for missing data', async () => {
       const res = await request(app)
         .post('/api/v1/crypto/hash')
@@ -58,6 +87,52 @@ describe('Crypto Service', () => {
       
       expect(res.status).toBe(400);
       expect(res.body.error.code).toBe('VALIDATION_ERROR');
+    });
+  });
+
+  describe('POST /api/v1/crypto/hash/verify', () => {
+    it('should verify bcrypt hash', async () => {
+      // First create a hash
+      const hashRes = await request(app)
+        .post('/api/v1/crypto/hash')
+        .send({
+          data: 'password123',
+          algorithm: 'bcrypt',
+          options: { rounds: 4 },
+        });
+      
+      // Then verify it
+      const verifyRes = await request(app)
+        .post('/api/v1/crypto/hash/verify')
+        .send({
+          data: 'password123',
+          hash: hashRes.body.data.hash,
+          algorithm: 'bcrypt',
+        });
+      
+      expect(verifyRes.status).toBe(200);
+      expect(verifyRes.body.data.valid).toBe(true);
+    });
+
+    it('should reject invalid bcrypt password', async () => {
+      const hashRes = await request(app)
+        .post('/api/v1/crypto/hash')
+        .send({
+          data: 'password123',
+          algorithm: 'bcrypt',
+          options: { rounds: 4 },
+        });
+      
+      const verifyRes = await request(app)
+        .post('/api/v1/crypto/hash/verify')
+        .send({
+          data: 'wrongpassword',
+          hash: hashRes.body.data.hash,
+          algorithm: 'bcrypt',
+        });
+      
+      expect(verifyRes.status).toBe(200);
+      expect(verifyRes.body.data.valid).toBe(false);
     });
   });
 
@@ -132,6 +207,172 @@ describe('Crypto Service', () => {
       
       expect(res.status).toBe(200);
       expect(res.body.data.uuids).toHaveLength(5);
+    });
+  });
+
+  describe('JWT Operations', () => {
+    const testSecret = 'this-is-a-test-secret-key-at-least-32-chars';
+
+    describe('POST /api/v1/crypto/jwt/generate', () => {
+      it('should generate a JWT token', async () => {
+        const res = await request(app)
+          .post('/api/v1/crypto/jwt/generate')
+          .send({
+            payload: { userId: '123', role: 'admin' },
+            secret: testSecret,
+            options: { expiresIn: '1h' },
+          });
+        
+        expect(res.status).toBe(200);
+        expect(res.body.success).toBe(true);
+        expect(res.body.data.token).toBeDefined();
+        expect(res.body.data.token.split('.')).toHaveLength(3);
+        expect(res.body.data.expiresAt).toBeDefined();
+        expect(res.body.data.algorithm).toBe('HS256');
+      });
+
+      it('should require a payload', async () => {
+        const res = await request(app)
+          .post('/api/v1/crypto/jwt/generate')
+          .send({
+            secret: testSecret,
+          });
+        
+        expect(res.status).toBe(400);
+        expect(res.body.error.code).toBe('VALIDATION_ERROR');
+      });
+    });
+
+    describe('POST /api/v1/crypto/jwt/verify', () => {
+      it('should verify a valid JWT token', async () => {
+        // First generate a token
+        const genRes = await request(app)
+          .post('/api/v1/crypto/jwt/generate')
+          .send({
+            payload: { userId: '123' },
+            secret: testSecret,
+          });
+        
+        // Then verify it
+        const verifyRes = await request(app)
+          .post('/api/v1/crypto/jwt/verify')
+          .send({
+            token: genRes.body.data.token,
+            secret: testSecret,
+          });
+        
+        expect(verifyRes.status).toBe(200);
+        expect(verifyRes.body.data.valid).toBe(true);
+        expect(verifyRes.body.data.payload.userId).toBe('123');
+      });
+
+      it('should reject an invalid token', async () => {
+        const res = await request(app)
+          .post('/api/v1/crypto/jwt/verify')
+          .send({
+            token: 'invalid.token.here',
+            secret: testSecret,
+          });
+        
+        expect(res.status).toBe(401);
+        expect(res.body.data.valid).toBe(false);
+        expect(res.body.data.error).toBe('JWT_INVALID');
+      });
+
+      it('should reject a token with wrong secret', async () => {
+        const genRes = await request(app)
+          .post('/api/v1/crypto/jwt/generate')
+          .send({
+            payload: { userId: '123' },
+            secret: testSecret,
+          });
+        
+        const verifyRes = await request(app)
+          .post('/api/v1/crypto/jwt/verify')
+          .send({
+            token: genRes.body.data.token,
+            secret: 'different-secret-key-at-least-32-chars-long',
+          });
+        
+        expect(verifyRes.status).toBe(401);
+        expect(verifyRes.body.data.valid).toBe(false);
+      });
+    });
+
+    describe('POST /api/v1/crypto/jwt/decode', () => {
+      it('should decode a JWT without verification', async () => {
+        const genRes = await request(app)
+          .post('/api/v1/crypto/jwt/generate')
+          .send({
+            payload: { userId: '456', name: 'Test' },
+            secret: testSecret,
+          });
+        
+        const decodeRes = await request(app)
+          .post('/api/v1/crypto/jwt/decode')
+          .send({
+            token: genRes.body.data.token,
+          });
+        
+        expect(decodeRes.status).toBe(200);
+        expect(decodeRes.body.data.payload.userId).toBe('456');
+        expect(decodeRes.body.data.payload.name).toBe('Test');
+      });
+
+      it('should return complete token with header when requested', async () => {
+        const genRes = await request(app)
+          .post('/api/v1/crypto/jwt/generate')
+          .send({
+            payload: { test: 'data' },
+            secret: testSecret,
+          });
+        
+        const decodeRes = await request(app)
+          .post('/api/v1/crypto/jwt/decode')
+          .send({
+            token: genRes.body.data.token,
+            complete: true,
+          });
+        
+        expect(decodeRes.status).toBe(200);
+        expect(decodeRes.body.data.header).toBeDefined();
+        expect(decodeRes.body.data.header.alg).toBe('HS256');
+      });
+    });
+
+    describe('POST /api/v1/crypto/jwt/refresh', () => {
+      it('should refresh a JWT token', async () => {
+        const genRes = await request(app)
+          .post('/api/v1/crypto/jwt/generate')
+          .send({
+            payload: { userId: '789' },
+            secret: testSecret,
+            options: { expiresIn: '1m' },
+          });
+        
+        const refreshRes = await request(app)
+          .post('/api/v1/crypto/jwt/refresh')
+          .send({
+            token: genRes.body.data.token,
+            secret: testSecret,
+            newExpiresIn: '2h',
+          });
+        
+        expect(refreshRes.status).toBe(200);
+        expect(refreshRes.body.success).toBe(true);
+        expect(refreshRes.body.data.token).toBeDefined();
+        expect(refreshRes.body.data.token).not.toBe(genRes.body.data.token);
+        
+        // Verify the new token still has the payload
+        const verifyRes = await request(app)
+          .post('/api/v1/crypto/jwt/verify')
+          .send({
+            token: refreshRes.body.data.token,
+            secret: testSecret,
+          });
+        
+        expect(verifyRes.body.data.payload.userId).toBe('789');
+      });
     });
   });
 });

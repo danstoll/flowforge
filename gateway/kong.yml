@@ -142,6 +142,17 @@ services:
           - http
           - https
 
+  # Health Check Aggregator
+  - name: health-check
+    url: http://crypto-service:3001
+    routes:
+      - name: health-routes
+        paths:
+          - /health
+        methods:
+          - GET
+        strip_path: true
+
 # ===========================================
 # Global Plugins
 # ===========================================
@@ -182,20 +193,37 @@ plugins:
       generator: uuid#counter
       echo_downstream: true
 
-  # Request/Response Logging
+  # HTTP Log Plugin (structured logging)
+  - name: http-log
+    config:
+      http_endpoint: http://localhost:9200/_bulk
+      method: POST
+      timeout: 10000
+      keepalive: 60000
+      retry_count: 3
+      queue_size: 1000
+      flush_timeout: 2
+      custom_fields_by_lua:
+        service_name: "return kong.router.get_service().name"
+        route_name: "return kong.router.get_route().name"
+
+  # File Log Plugin (stdout for Docker)
   - name: file-log
     config:
       path: /dev/stdout
       reopen: true
 
-  # Rate Limiting (Global)
+  # Rate Limiting (100 req/min per consumer)
   - name: rate-limiting
     config:
       minute: 100
       hour: 1000
+      day: 10000
       policy: local
       fault_tolerant: true
       hide_client_headers: false
+      error_code: 429
+      error_message: "Rate limit exceeded. Please try again later."
 
   # Response Transformer (Add headers)
   - name: response-transformer
@@ -203,6 +231,32 @@ plugins:
       add:
         headers:
           - "X-Powered-By:FlowForge"
+          - "X-API-Version:1.0"
+
+  # Request Size Limiting
+  - name: request-size-limiting
+    config:
+      allowed_payload_size: 10
+      size_unit: megabytes
+
+  # Bot Detection
+  - name: bot-detection
+    config:
+      allow:
+        - googlebot
+        - bingbot
+      deny:
+        - curl
+        - wget
+
+  # IP Restriction (example - commented out by default)
+  # - name: ip-restriction
+  #   config:
+  #     allow:
+  #       - 127.0.0.1
+  #       - 10.0.0.0/8
+  #       - 172.16.0.0/12
+  #       - 192.168.0.0/16
 
 # ===========================================
 # Consumers (API Users)
@@ -212,6 +266,91 @@ consumers:
   - username: default-user
     keyauth_credentials:
       - key: flowforge-default-api-key
+    jwt_secrets:
+      - key: default-jwt-key
+        secret: flowforge-jwt-secret-change-in-production
+        algorithm: HS256
+
+  - username: admin-user
+    keyauth_credentials:
+      - key: flowforge-admin-api-key
+    jwt_secrets:
+      - key: admin-jwt-key
+        secret: flowforge-admin-jwt-secret-change-in-production
+        algorithm: HS256
+
+  - username: test-user
+    keyauth_credentials:
+      - key: flowforge-test-api-key
+
+# ===========================================
+# Consumer Groups (Rate Limit Tiers)
+# ===========================================
+
+consumer_groups:
+  - name: free-tier
+    plugins:
+      - name: rate-limiting-advanced
+        config:
+          limit:
+            - 50
+          window_size:
+            - 60
+          identifier: consumer
+
+  - name: pro-tier
+    plugins:
+      - name: rate-limiting-advanced
+        config:
+          limit:
+            - 500
+          window_size:
+            - 60
+          identifier: consumer
+
+  - name: enterprise-tier
+    plugins:
+      - name: rate-limiting-advanced
+        config:
+          limit:
+            - 5000
+          window_size:
+            - 60
+          identifier: consumer
+
+# ===========================================
+# Service-Specific Plugins
+# ===========================================
+
+# Key Authentication for all API routes
+# Routes requiring API key authentication
+# Comment this section out for open access
+
+# - name: key-auth
+#   service: crypto-service
+#   config:
+#     key_names:
+#       - X-API-Key
+#       - apikey
+#     key_in_header: true
+#     key_in_query: true
+#     key_in_body: false
+#     hide_credentials: true
+
+# JWT Authentication Plugin (optional - enable per service)
+# - name: jwt
+#   service: crypto-service
+#   config:
+#     uri_param_names:
+#       - jwt
+#     cookie_names: []
+#     header_names:
+#       - Authorization
+#     claims_to_verify:
+#       - exp
+#     key_claim_name: iss
+#     secret_is_base64: false
+#     run_on_preflight: true
 
 # ===========================================
 # Upstreams (for load balancing)
@@ -232,10 +371,107 @@ upstreams:
           http_failures: 3
         http_path: /health
         timeout: 5
+      passive:
+        healthy:
+          successes: 2
+        unhealthy:
+          http_failures: 3
+          tcp_failures: 3
+          timeouts: 3
 
   - name: math-service-upstream
     targets:
       - target: math-service:3002
+        weight: 100
+    healthchecks:
+      active:
+        healthy:
+          interval: 30
+          successes: 2
+        unhealthy:
+          interval: 10
+          http_failures: 3
+        http_path: /health
+        timeout: 5
+
+  - name: pdf-service-upstream
+    targets:
+      - target: pdf-service:3003
+        weight: 100
+    healthchecks:
+      active:
+        healthy:
+          interval: 30
+          successes: 2
+        unhealthy:
+          interval: 10
+          http_failures: 3
+        http_path: /health
+        timeout: 5
+
+  - name: ocr-service-upstream
+    targets:
+      - target: ocr-service:3004
+        weight: 100
+    healthchecks:
+      active:
+        healthy:
+          interval: 30
+          successes: 2
+        unhealthy:
+          interval: 10
+          http_failures: 3
+        http_path: /health
+        timeout: 5
+
+  - name: image-service-upstream
+    targets:
+      - target: image-service:3005
+        weight: 100
+    healthchecks:
+      active:
+        healthy:
+          interval: 30
+          successes: 2
+        unhealthy:
+          interval: 10
+          http_failures: 3
+        http_path: /health
+        timeout: 5
+
+  - name: llm-service-upstream
+    targets:
+      - target: llm-service:3006
+        weight: 100
+    healthchecks:
+      active:
+        healthy:
+          interval: 30
+          successes: 2
+        unhealthy:
+          interval: 10
+          http_failures: 3
+        http_path: /health
+        timeout: 5
+
+  - name: vector-service-upstream
+    targets:
+      - target: vector-service:3007
+        weight: 100
+    healthchecks:
+      active:
+        healthy:
+          interval: 30
+          successes: 2
+        unhealthy:
+          interval: 10
+          http_failures: 3
+        http_path: /health
+        timeout: 5
+
+  - name: data-transform-service-upstream
+    targets:
+      - target: data-transform-service:3008
         weight: 100
     healthchecks:
       active:

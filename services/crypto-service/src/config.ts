@@ -21,4 +21,7 @@ export const config = {
     defaultAlgorithm: process.env.CRYPTO_DEFAULT_ALGORITHM || 'sha256',
     defaultEncryption: process.env.CRYPTO_DEFAULT_ENCRYPTION || 'aes-256-gcm',
   },
+
+  jwtSecret: process.env.JWT_SECRET || undefined,
+  jwtDefaultExpiry: process.env.JWT_DEFAULT_EXPIRY || '1h',
 };
