@@ -1,0 +1,13 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --foreground: 222.2 84% 4.9%;
+  --background: 0 0% 100%;
+}
+
+body {
+  font-family: system-ui, -apple-system, sans-serif;
+  @apply bg-gray-50 text-gray-900;
+}

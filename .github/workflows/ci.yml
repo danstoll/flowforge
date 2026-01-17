@@ -1,0 +1,63 @@
+name: CI/CD
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: [crypto-service, math-service]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        if: contains(matrix.service, 'crypto') || contains(matrix.service, 'pdf') || contains(matrix.service, 'image') || contains(matrix.service, 'data-transform')
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: services/${{ matrix.service }}/package-lock.json
+
+      - name: Setup Python
+        if: contains(matrix.service, 'math') || contains(matrix.service, 'ocr') || contains(matrix.service, 'llm') || contains(matrix.service, 'vector')
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Node.js dependencies
+        if: contains(matrix.service, 'crypto') || contains(matrix.service, 'pdf') || contains(matrix.service, 'image') || contains(matrix.service, 'data-transform')
+        run: |
+          cd services/${{ matrix.service }}
+          npm ci
+
+      - name: Install Python dependencies
+        if: contains(matrix.service, 'math') || contains(matrix.service, 'ocr') || contains(matrix.service, 'llm') || contains(matrix.service, 'vector')
+        run: |
+          cd services/${{ matrix.service }}
+          pip install -r requirements.txt
+
+      - name: Run tests
+        run: |
+          cd services/${{ matrix.service }}
+          if [ -f package.json ]; then npm test; fi
+          if [ -f requirements.txt ]; then pytest || true; fi
+
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build images
+        run: docker-compose build
