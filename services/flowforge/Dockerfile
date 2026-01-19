@@ -71,9 +71,9 @@ COPY --from=backend-builder /app/dist/server ./dist/server
 # Copy built frontend
 COPY --from=frontend-builder /app/dist/client ./dist/client
 
-# Copy runtime files
-COPY migrations ./migrations
-COPY registry ./registry
+# Copy runtime files (migrations and registry to dist folder where code expects them)
+COPY migrations ./dist/migrations
+COPY registry ./dist/registry
 
 # Create non-root user
 RUN addgroup -g 1001 -S nodejs && \
