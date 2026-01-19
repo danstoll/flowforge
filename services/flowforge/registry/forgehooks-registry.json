@@ -1,0 +1,484 @@
+{
+  "$schema": "./registry-schema.json",
+  "version": "1.0.0",
+  "lastUpdated": "2026-01-18T00:00:00Z",
+  "registry": {
+    "name": "FlowForge Official Registry",
+    "description": "Official ForgeHook plugins maintained by the FlowForge team",
+    "url": "https://registry.flowforge.io",
+    "maintainer": "FlowForge Team"
+  },
+  "plugins": [
+    {
+      "id": "crypto-service",
+      "verified": true,
+      "featured": true,
+      "downloads": 1000,
+      "rating": 4.8,
+      "publishedAt": "2024-01-01T00:00:00Z",
+      "updatedAt": "2026-01-15T00:00:00Z",
+      "manifest": {
+        "id": "crypto-service",
+        "name": "Crypto Service",
+        "version": "1.0.0",
+        "description": "Cryptographic operations including hashing, encryption, and JWT token management. Supports SHA, bcrypt, argon2, AES-256-GCM encryption.",
+        "author": {
+          "name": "FlowForge Team",
+          "email": "team@flowforge.io",
+          "url": "https://flowforge.io"
+        },
+        "license": "MIT",
+        "repository": "https://github.com/flowforge/crypto-service",
+        "icon": "lock",
+        "category": "security",
+        "tags": ["encryption", "hashing", "jwt", "bcrypt", "security", "crypto"],
+        "image": {
+          "repository": "flowforge/crypto-service",
+          "tag": "latest"
+        },
+        "port": 4001,
+        "basePath": "/api/v1/crypto",
+        "endpoints": [
+          {
+            "method": "POST",
+            "path": "/hash",
+            "description": "Hash data using SHA, bcrypt, or argon2",
+            "authentication": false
+          },
+          {
+            "method": "POST",
+            "path": "/encrypt",
+            "description": "Encrypt data using AES-256-GCM",
+            "authentication": false
+          },
+          {
+            "method": "POST",
+            "path": "/decrypt",
+            "description": "Decrypt AES encrypted data",
+            "authentication": false
+          },
+          {
+            "method": "POST",
+            "path": "/jwt/generate",
+            "description": "Generate JWT token",
+            "authentication": false
+          },
+          {
+            "method": "POST",
+            "path": "/jwt/verify",
+            "description": "Verify JWT token",
+            "authentication": false
+          }
+        ],
+        "resources": {
+          "memory": "256m",
+          "cpu": "0.5"
+        },
+        "dependencies": {
+          "services": ["redis"]
+        }
+      }
+    },
+    {
+      "id": "math-service",
+      "verified": true,
+      "featured": true,
+      "downloads": 850,
+      "rating": 4.7,
+      "publishedAt": "2024-01-01T00:00:00Z",
+      "updatedAt": "2026-01-15T00:00:00Z",
+      "manifest": {
+        "id": "math-service",
+        "name": "Math Service",
+        "version": "1.0.0",
+        "description": "Mathematical calculations, statistics, and unit conversions. Powered by NumPy and SciPy.",
+        "author": {
+          "name": "FlowForge Team",
+          "email": "team@flowforge.io"
+        },
+        "license": "MIT",
+        "repository": "https://github.com/flowforge/math-service",
+        "icon": "calculator",
+        "category": "utility",
+        "tags": ["math", "statistics", "calculations", "conversion", "numpy", "scipy"],
+        "image": {
+          "repository": "flowforge/math-service",
+          "tag": "latest"
+        },
+        "port": 4002,
+        "basePath": "/api/v1/math",
+        "endpoints": [
+          {
+            "method": "POST",
+            "path": "/calculate",
+            "description": "Evaluate mathematical expressions"
+          },
+          {
+            "method": "POST",
+            "path": "/statistics",
+            "description": "Statistical analysis on datasets"
+          },
+          {
+            "method": "POST",
+            "path": "/convert",
+            "description": "Unit conversions"
+          }
+        ],
+        "resources": {
+          "memory": "512m",
+          "cpu": "1"
+        },
+        "dependencies": {
+          "services": ["redis"]
+        }
+      }
+    },
+    {
+      "id": "pdf-service",
+      "verified": true,
+      "featured": true,
+      "downloads": 920,
+      "rating": 4.6,
+      "publishedAt": "2024-01-01T00:00:00Z",
+      "updatedAt": "2026-01-15T00:00:00Z",
+      "manifest": {
+        "id": "pdf-service",
+        "name": "PDF Service",
+        "version": "1.0.0",
+        "description": "PDF generation from HTML, merging, splitting, and text extraction.",
+        "author": {
+          "name": "FlowForge Team",
+          "email": "team@flowforge.io"
+        },
+        "license": "MIT",
+        "repository": "https://github.com/flowforge/pdf-service",
+        "icon": "file-text",
+        "category": "media",
+        "tags": ["pdf", "documents", "generation", "html-to-pdf", "merge", "split"],
+        "image": {
+          "repository": "flowforge/pdf-service",
+          "tag": "latest"
+        },
+        "port": 4003,
+        "basePath": "/api/v1/pdf",
+        "endpoints": [
+          {
+            "method": "POST",
+            "path": "/generate",
+            "description": "Generate PDF from HTML"
+          },
+          {
+            "method": "POST",
+            "path": "/merge",
+            "description": "Merge multiple PDFs"
+          },
+          {
+            "method": "POST",
+            "path": "/split",
+            "description": "Split PDF into pages"
+          },
+          {
+            "method": "POST",
+            "path": "/extract-text",
+            "description": "Extract text from PDF"
+          }
+        ],
+        "resources": {
+          "memory": "1g",
+          "cpu": "1"
+        },
+        "dependencies": {
+          "services": ["redis"]
+        }
+      }
+    },
+    {
+      "id": "ocr-service",
+      "verified": true,
+      "featured": false,
+      "downloads": 670,
+      "rating": 4.5,
+      "publishedAt": "2024-01-01T00:00:00Z",
+      "updatedAt": "2026-01-15T00:00:00Z",
+      "manifest": {
+        "id": "ocr-service",
+        "name": "OCR Service",
+        "version": "1.0.0",
+        "description": "Optical character recognition for extracting text from images. Supports multiple languages.",
+        "author": {
+          "name": "FlowForge Team",
+          "email": "team@flowforge.io"
+        },
+        "license": "MIT",
+        "repository": "https://github.com/flowforge/ocr-service",
+        "icon": "scan",
+        "category": "ai",
+        "tags": ["ocr", "text-extraction", "image-processing", "ai", "tesseract", "paddleocr"],
+        "image": {
+          "repository": "flowforge/ocr-service",
+          "tag": "latest"
+        },
+        "port": 4004,
+        "basePath": "/api/v1/ocr",
+        "endpoints": [
+          {
+            "method": "POST",
+            "path": "/extract",
+            "description": "Extract text from image"
+          },
+          {
+            "method": "GET",
+            "path": "/languages",
+            "description": "List supported languages"
+          }
+        ],
+        "resources": {
+          "memory": "2g",
+          "cpu": "2"
+        },
+        "dependencies": {
+          "services": ["redis"]
+        }
+      }
+    },
+    {
+      "id": "image-service",
+      "verified": true,
+      "featured": true,
+      "downloads": 780,
+      "rating": 4.7,
+      "publishedAt": "2024-01-01T00:00:00Z",
+      "updatedAt": "2026-01-15T00:00:00Z",
+      "manifest": {
+        "id": "image-service",
+        "name": "Image Service",
+        "version": "1.0.0",
+        "description": "Image processing including resize, convert, optimize, and format transformations.",
+        "author": {
+          "name": "FlowForge Team",
+          "email": "team@flowforge.io"
+        },
+        "license": "MIT",
+        "repository": "https://github.com/flowforge/image-service",
+        "icon": "image",
+        "category": "media",
+        "tags": ["image", "resize", "optimization", "conversion", "sharp", "webp"],
+        "image": {
+          "repository": "flowforge/image-service",
+          "tag": "latest"
+        },
+        "port": 4005,
+        "basePath": "/api/v1/image",
+        "endpoints": [
+          {
+            "method": "POST",
+            "path": "/resize",
+            "description": "Resize image"
+          },
+          {
+            "method": "POST",
+            "path": "/convert",
+            "description": "Convert image format"
+          },
+          {
+            "method": "POST",
+            "path": "/optimize",
+            "description": "Optimize image for web"
+          }
+        ],
+        "resources": {
+          "memory": "512m",
+          "cpu": "1"
+        },
+        "dependencies": {
+          "services": ["redis"]
+        }
+      }
+    },
+    {
+      "id": "llm-service",
+      "verified": true,
+      "featured": true,
+      "downloads": 1200,
+      "rating": 4.9,
+      "publishedAt": "2024-01-01T00:00:00Z",
+      "updatedAt": "2026-01-15T00:00:00Z",
+      "manifest": {
+        "id": "llm-service",
+        "name": "LLM Service",
+        "version": "1.0.0",
+        "description": "AI text generation and chat completions. Compatible with OpenAI API and local models via vLLM.",
+        "author": {
+          "name": "FlowForge Team",
+          "email": "team@flowforge.io"
+        },
+        "license": "MIT",
+        "repository": "https://github.com/flowforge/llm-service",
+        "icon": "brain",
+        "category": "ai",
+        "tags": ["ai", "llm", "chat", "text-generation", "openai", "vllm", "gpt"],
+        "image": {
+          "repository": "flowforge/llm-service",
+          "tag": "latest"
+        },
+        "port": 4006,
+        "basePath": "/api/v1/llm",
+        "endpoints": [
+          {
+            "method": "POST",
+            "path": "/chat",
+            "description": "Chat completion"
+          },
+          {
+            "method": "POST",
+            "path": "/generate",
+            "description": "Text generation"
+          },
+          {
+            "method": "POST",
+            "path": "/embeddings",
+            "description": "Generate embeddings"
+          },
+          {
+            "method": "GET",
+            "path": "/models",
+            "description": "List available models"
+          }
+        ],
+        "environment": [
+          {
+            "name": "OPENAI_API_KEY",
+            "description": "OpenAI API key",
+            "required": false,
+            "secret": true
+          },
+          {
+            "name": "OPENAI_API_BASE",
+            "description": "Custom OpenAI API base URL",
+            "required": false
+          }
+        ],
+        "resources": {
+          "memory": "1g",
+          "cpu": "1"
+        },
+        "dependencies": {
+          "services": ["redis"]
+        }
+      }
+    },
+    {
+      "id": "vector-service",
+      "verified": true,
+      "featured": false,
+      "downloads": 560,
+      "rating": 4.6,
+      "publishedAt": "2024-01-01T00:00:00Z",
+      "updatedAt": "2026-01-15T00:00:00Z",
+      "manifest": {
+        "id": "vector-service",
+        "name": "Vector Service",
+        "version": "1.0.0",
+        "description": "Vector database operations for semantic search and embeddings storage using Qdrant.",
+        "author": {
+          "name": "FlowForge Team",
+          "email": "team@flowforge.io"
+        },
+        "license": "MIT",
+        "repository": "https://github.com/flowforge/vector-service",
+        "icon": "database",
+        "category": "data",
+        "tags": ["vectors", "embeddings", "semantic-search", "qdrant", "similarity"],
+        "image": {
+          "repository": "flowforge/vector-service",
+          "tag": "latest"
+        },
+        "port": 4007,
+        "basePath": "/api/v1/vector",
+        "endpoints": [
+          {
+            "method": "POST",
+            "path": "/collections/create",
+            "description": "Create collection"
+          },
+          {
+            "method": "GET",
+            "path": "/collections/list",
+            "description": "List collections"
+          },
+          {
+            "method": "POST",
+            "path": "/upsert",
+            "description": "Upsert vectors"
+          },
+          {
+            "method": "POST",
+            "path": "/search",
+            "description": "Search vectors"
+          }
+        ],
+        "resources": {
+          "memory": "512m",
+          "cpu": "1"
+        },
+        "dependencies": {
+          "services": ["redis", "qdrant"]
+        }
+      }
+    },
+    {
+      "id": "data-transform-service",
+      "verified": true,
+      "featured": false,
+      "downloads": 640,
+      "rating": 4.5,
+      "publishedAt": "2024-01-01T00:00:00Z",
+      "updatedAt": "2026-01-15T00:00:00Z",
+      "manifest": {
+        "id": "data-transform-service",
+        "name": "Data Transform",
+        "version": "1.0.0",
+        "description": "Data format conversions between JSON, CSV, XML, YAML, and more.",
+        "author": {
+          "name": "FlowForge Team",
+          "email": "team@flowforge.io"
+        },
+        "license": "MIT",
+        "repository": "https://github.com/flowforge/data-transform-service",
+        "icon": "repeat",
+        "category": "data",
+        "tags": ["data", "transform", "json", "csv", "xml", "yaml", "conversion"],
+        "image": {
+          "repository": "flowforge/data-transform-service",
+          "tag": "latest"
+        },
+        "port": 4008,
+        "basePath": "/api/v1/data",
+        "endpoints": [
+          {
+            "method": "POST",
+            "path": "/json-to-csv",
+            "description": "Convert JSON to CSV"
+          },
+          {
+            "method": "POST",
+            "path": "/csv-to-json",
+            "description": "Convert CSV to JSON"
+          },
+          {
+            "method": "POST",
+            "path": "/xml-to-json",
+            "description": "Convert XML to JSON"
+          }
+        ],
+        "resources": {
+          "memory": "256m",
+          "cpu": "0.5"
+        },
+        "dependencies": {
+          "services": ["redis"]
+        }
+      }
+    }
+  ]
+}

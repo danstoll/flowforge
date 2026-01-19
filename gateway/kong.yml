@@ -1,164 +1,456 @@
 _format_version: "3.0"
 _transform: true
 
-# ===========================================
+# =============================================================================
+# FlowForge API Gateway Configuration
+# =============================================================================
+# This file defines the Kong Gateway declarative configuration for routing
+# and securing all FlowForge microservices.
+#
+# Key Features:
+# - JWT Authentication (with exclusions for health/metrics)
+# - Rate Limiting (100 req/min per consumer)
+# - CORS (configurable origins)
+# - Request ID tracking
+# - Prometheus metrics
+# - Request/Response logging
+# =============================================================================
+
+# =============================================================================
 # Services
-# ===========================================
+# =============================================================================
 
 services:
+  # ---------------------------------------------------------------------------
   # Crypto Service
+  # ---------------------------------------------------------------------------
   - name: crypto-service
     url: http://crypto-service:3001
     connect_timeout: 60000
     write_timeout: 60000
     read_timeout: 60000
     retries: 3
-    routes:
-      - name: crypto-routes
-        paths:
-          - /api/v1/crypto
-        strip_path: false
-        preserve_host: false
-        protocols:
-          - http
-          - https
+    tags:
+      - flowforge
+      - crypto
 
+  # ---------------------------------------------------------------------------
   # Math Service
+  # ---------------------------------------------------------------------------
   - name: math-service
     url: http://math-service:3002
     connect_timeout: 60000
     write_timeout: 60000
     read_timeout: 60000
     retries: 3
-    routes:
-      - name: math-routes
-        paths:
-          - /api/v1/math
-        strip_path: false
-        preserve_host: false
-        protocols:
-          - http
-          - https
+    tags:
+      - flowforge
+      - math
 
+  # ---------------------------------------------------------------------------
   # PDF Service
+  # ---------------------------------------------------------------------------
   - name: pdf-service
     url: http://pdf-service:3003
     connect_timeout: 120000
     write_timeout: 120000
     read_timeout: 120000
     retries: 3
-    routes:
-      - name: pdf-routes
-        paths:
-          - /api/v1/pdf
-        strip_path: false
-        preserve_host: false
-        protocols:
-          - http
-          - https
+    tags:
+      - flowforge
+      - pdf
 
+  # ---------------------------------------------------------------------------
   # OCR Service
+  # ---------------------------------------------------------------------------
   - name: ocr-service
     url: http://ocr-service:3004
     connect_timeout: 120000
     write_timeout: 120000
     read_timeout: 120000
     retries: 3
-    routes:
-      - name: ocr-routes
-        paths:
-          - /api/v1/ocr
-        strip_path: false
-        preserve_host: false
-        protocols:
-          - http
-          - https
+    tags:
+      - flowforge
+      - ocr
 
+  # ---------------------------------------------------------------------------
   # Image Service
+  # ---------------------------------------------------------------------------
   - name: image-service
     url: http://image-service:3005
     connect_timeout: 60000
     write_timeout: 60000
     read_timeout: 60000
     retries: 3
-    routes:
-      - name: image-routes
-        paths:
-          - /api/v1/image
-        strip_path: false
-        preserve_host: false
-        protocols:
-          - http
-          - https
+    tags:
+      - flowforge
+      - image
 
+  # ---------------------------------------------------------------------------
   # LLM Service
+  # ---------------------------------------------------------------------------
   - name: llm-service
     url: http://llm-service:3006
     connect_timeout: 300000
     write_timeout: 300000
     read_timeout: 300000
     retries: 2
-    routes:
-      - name: llm-routes
-        paths:
-          - /api/v1/llm
-        strip_path: false
-        preserve_host: false
-        protocols:
-          - http
-          - https
+    tags:
+      - flowforge
+      - llm
 
+  # ---------------------------------------------------------------------------
   # Vector Service
+  # ---------------------------------------------------------------------------
   - name: vector-service
     url: http://vector-service:3007
     connect_timeout: 60000
     write_timeout: 60000
     read_timeout: 60000
     retries: 3
-    routes:
-      - name: vector-routes
-        paths:
-          - /api/v1/vector
-        strip_path: false
-        preserve_host: false
-        protocols:
-          - http
-          - https
+    tags:
+      - flowforge
+      - vector
 
+  # ---------------------------------------------------------------------------
   # Data Transform Service
+  # ---------------------------------------------------------------------------
   - name: data-transform-service
     url: http://data-transform-service:3008
     connect_timeout: 60000
     write_timeout: 60000
     read_timeout: 60000
     retries: 3
-    routes:
-      - name: data-transform-routes
-        paths:
-          - /api/v1/data
-        strip_path: false
-        preserve_host: false
-        protocols:
-          - http
-          - https
+    tags:
+      - flowforge
+      - data-transform
 
-  # Health Check Aggregator
-  - name: health-check
-    url: http://crypto-service:3001
-    routes:
-      - name: health-routes
-        paths:
-          - /health
-        methods:
-          - GET
-        strip_path: true
+# =============================================================================
+# Routes
+# =============================================================================
 
-# ===========================================
+routes:
+  # ---------------------------------------------------------------------------
+  # Crypto Service Routes
+  # ---------------------------------------------------------------------------
+  
+  # Health/Metrics routes (public - no auth required)
+  - name: crypto-health-routes
+    service: crypto-service
+    paths:
+      - /api/v1/crypto/health
+      - /api/v1/crypto/health/ready
+      - /api/v1/crypto/health/live
+      - /api/v1/crypto/metrics
+      - /api/v1/crypto/openapi.json
+    strip_path: true
+    preserve_host: false
+    protocols:
+      - http
+      - https
+    methods:
+      - GET
+    tags:
+      - crypto
+      - public
+      - health
+
+  # Crypto service docs (public)
+  - name: crypto-docs-routes
+    service: crypto-service
+    paths:
+      - /api/v1/crypto/docs
+    strip_path: true
+    preserve_host: false
+    protocols:
+      - http
+      - https
+    methods:
+      - GET
+    tags:
+      - crypto
+      - public
+      - docs
+
+  # Main API routes (JWT protected)
+  - name: crypto-api-routes
+    service: crypto-service
+    paths:
+      - /api/v1/crypto
+    strip_path: true
+    preserve_host: false
+    protocols:
+      - http
+      - https
+    methods:
+      - GET
+      - POST
+      - PUT
+      - PATCH
+      - DELETE
+      - OPTIONS
+    tags:
+      - crypto
+      - protected
+
+  # ---------------------------------------------------------------------------
+  # Math Service Routes
+  # ---------------------------------------------------------------------------
+  - name: math-health-routes
+    service: math-service
+    paths:
+      - /api/v1/math/health
+      - /api/v1/math/metrics
+    strip_path: true
+    preserve_host: false
+    protocols:
+      - http
+      - https
+    methods:
+      - GET
+    tags:
+      - math
+      - public
+      - health
+
+  - name: math-api-routes
+    service: math-service
+    paths:
+      - /api/v1/math
+    strip_path: true
+    preserve_host: false
+    protocols:
+      - http
+      - https
+    tags:
+      - math
+      - protected
+
+  # ---------------------------------------------------------------------------
+  # PDF Service Routes
+  # ---------------------------------------------------------------------------
+  - name: pdf-health-routes
+    service: pdf-service
+    paths:
+      - /api/v1/pdf/health
+      - /api/v1/pdf/metrics
+    strip_path: true
+    preserve_host: false
+    protocols:
+      - http
+      - https
+    methods:
+      - GET
+    tags:
+      - pdf
+      - public
+      - health
+
+  - name: pdf-api-routes
+    service: pdf-service
+    paths:
+      - /api/v1/pdf
+    strip_path: true
+    preserve_host: false
+    protocols:
+      - http
+      - https
+    tags:
+      - pdf
+      - protected
+
+  # ---------------------------------------------------------------------------
+  # OCR Service Routes
+  # ---------------------------------------------------------------------------
+  - name: ocr-health-routes
+    service: ocr-service
+    paths:
+      - /api/v1/ocr/health
+      - /api/v1/ocr/metrics
+    strip_path: true
+    preserve_host: false
+    protocols:
+      - http
+      - https
+    methods:
+      - GET
+    tags:
+      - ocr
+      - public
+      - health
+
+  - name: ocr-api-routes
+    service: ocr-service
+    paths:
+      - /api/v1/ocr
+    strip_path: true
+    preserve_host: false
+    protocols:
+      - http
+      - https
+    tags:
+      - ocr
+      - protected
+
+  # ---------------------------------------------------------------------------
+  # Image Service Routes
+  # ---------------------------------------------------------------------------
+  - name: image-health-routes
+    service: image-service
+    paths:
+      - /api/v1/image/health
+      - /api/v1/image/metrics
+    strip_path: true
+    preserve_host: false
+    protocols:
+      - http
+      - https
+    methods:
+      - GET
+    tags:
+      - image
+      - public
+      - health
+
+  - name: image-api-routes
+    service: image-service
+    paths:
+      - /api/v1/image
+    strip_path: true
+    preserve_host: false
+    protocols:
+      - http
+      - https
+    tags:
+      - image
+      - protected
+
+  # ---------------------------------------------------------------------------
+  # LLM Service Routes
+  # ---------------------------------------------------------------------------
+  - name: llm-health-routes
+    service: llm-service
+    paths:
+      - /api/v1/llm/health
+      - /api/v1/llm/metrics
+    strip_path: true
+    preserve_host: false
+    protocols:
+      - http
+      - https
+    methods:
+      - GET
+    tags:
+      - llm
+      - public
+      - health
+
+  - name: llm-api-routes
+    service: llm-service
+    paths:
+      - /api/v1/llm
+    strip_path: true
+    preserve_host: false
+    protocols:
+      - http
+      - https
+    tags:
+      - llm
+      - protected
+
+  # ---------------------------------------------------------------------------
+  # Vector Service Routes
+  # ---------------------------------------------------------------------------
+  - name: vector-health-routes
+    service: vector-service
+    paths:
+      - /api/v1/vector/health
+      - /api/v1/vector/metrics
+    strip_path: true
+    preserve_host: false
+    protocols:
+      - http
+      - https
+    methods:
+      - GET
+    tags:
+      - vector
+      - public
+      - health
+
+  - name: vector-api-routes
+    service: vector-service
+    paths:
+      - /api/v1/vector
+    strip_path: true
+    preserve_host: false
+    protocols:
+      - http
+      - https
+    tags:
+      - vector
+      - protected
+
+  # ---------------------------------------------------------------------------
+  # Data Transform Service Routes
+  # ---------------------------------------------------------------------------
+  - name: data-transform-health-routes
+    service: data-transform-service
+    paths:
+      - /api/v1/data/health
+      - /api/v1/data/metrics
+    strip_path: true
+    preserve_host: false
+    protocols:
+      - http
+      - https
+    methods:
+      - GET
+    tags:
+      - data-transform
+      - public
+      - health
+
+  - name: data-transform-api-routes
+    service: data-transform-service
+    paths:
+      - /api/v1/data
+    strip_path: true
+    preserve_host: false
+    protocols:
+      - http
+      - https
+    tags:
+      - data-transform
+      - protected
+
+  # ---------------------------------------------------------------------------
+  # Gateway Health Check
+  # ---------------------------------------------------------------------------
+  - name: gateway-health
+    service: crypto-service
+    paths:
+      - /health
+    strip_path: false
+    preserve_host: false
+    protocols:
+      - http
+      - https
+    methods:
+      - GET
+    tags:
+      - gateway
+      - public
+      - health
+
+# =============================================================================
 # Global Plugins
-# ===========================================
+# =============================================================================
 
 plugins:
-  # CORS Plugin
+  # ---------------------------------------------------------------------------
+  # CORS Plugin (Global)
+  # ---------------------------------------------------------------------------
   - name: cors
     config:
       origins:
@@ -170,6 +462,7 @@ plugins:
         - PATCH
         - DELETE
         - OPTIONS
+        - HEAD
       headers:
         - Accept
         - Accept-Version
@@ -178,43 +471,172 @@ plugins:
         - Authorization
         - X-API-Key
         - X-Request-ID
+        - X-Requested-With
       exposed_headers:
         - X-Request-ID
         - X-RateLimit-Limit
         - X-RateLimit-Remaining
         - X-RateLimit-Reset
+        - X-Kong-Upstream-Latency
+        - X-Kong-Proxy-Latency
       credentials: true
       max_age: 3600
+      preflight_continue: false
 
-  # Request ID Plugin
+  # ---------------------------------------------------------------------------
+  # Request ID / Correlation ID Plugin (Global)
+  # ---------------------------------------------------------------------------
   - name: correlation-id
     config:
       header_name: X-Request-ID
       generator: uuid#counter
       echo_downstream: true
 
-  # HTTP Log Plugin (structured logging)
-  - name: http-log
-    config:
-      http_endpoint: http://localhost:9200/_bulk
-      method: POST
-      timeout: 10000
-      keepalive: 60000
-      retry_count: 3
-      queue_size: 1000
-      flush_timeout: 2
-      custom_fields_by_lua:
-        service_name: "return kong.router.get_service().name"
-        route_name: "return kong.router.get_route().name"
-
+  # ---------------------------------------------------------------------------
   # File Log Plugin (stdout for Docker)
+  # ---------------------------------------------------------------------------
   - name: file-log
     config:
       path: /dev/stdout
       reopen: true
 
-  # Rate Limiting (100 req/min per consumer)
+  # ---------------------------------------------------------------------------
+  # Response Transformer (Add headers)
+  # ---------------------------------------------------------------------------
+  - name: response-transformer
+    config:
+      add:
+        headers:
+          - "X-Powered-By:FlowForge"
+          - "X-API-Version:1.0"
+      remove:
+        headers:
+          - "Server"
+
+  # ---------------------------------------------------------------------------
+  # Request Size Limiting (Global)
+  # ---------------------------------------------------------------------------
+  - name: request-size-limiting
+    config:
+      allowed_payload_size: 10
+      size_unit: megabytes
+      require_content_length: false
+
+  # ---------------------------------------------------------------------------
+  # Prometheus Plugin (Global)
+  # ---------------------------------------------------------------------------
+  - name: prometheus
+    config:
+      status_code_metrics: true
+      latency_metrics: true
+      bandwidth_metrics: true
+      upstream_health_metrics: true
+      per_consumer: true
+
+# =============================================================================
+# Route-Specific Plugins
+# =============================================================================
+
+  # ---------------------------------------------------------------------------
+  # JWT Authentication (Protected Routes Only)
+  # ---------------------------------------------------------------------------
+  - name: jwt
+    route: crypto-api-routes
+    config:
+      uri_param_names:
+        - jwt
+      cookie_names: []
+      header_names:
+        - Authorization
+      claims_to_verify:
+        - exp
+      key_claim_name: iss
+      secret_is_base64: false
+      run_on_preflight: true
+      maximum_expiration: 86400
+
+  - name: jwt
+    route: math-api-routes
+    config:
+      uri_param_names:
+        - jwt
+      header_names:
+        - Authorization
+      claims_to_verify:
+        - exp
+      key_claim_name: iss
+
+  - name: jwt
+    route: pdf-api-routes
+    config:
+      uri_param_names:
+        - jwt
+      header_names:
+        - Authorization
+      claims_to_verify:
+        - exp
+      key_claim_name: iss
+
+  - name: jwt
+    route: ocr-api-routes
+    config:
+      uri_param_names:
+        - jwt
+      header_names:
+        - Authorization
+      claims_to_verify:
+        - exp
+      key_claim_name: iss
+
+  - name: jwt
+    route: image-api-routes
+    config:
+      uri_param_names:
+        - jwt
+      header_names:
+        - Authorization
+      claims_to_verify:
+        - exp
+      key_claim_name: iss
+
+  - name: jwt
+    route: llm-api-routes
+    config:
+      uri_param_names:
+        - jwt
+      header_names:
+        - Authorization
+      claims_to_verify:
+        - exp
+      key_claim_name: iss
+
+  - name: jwt
+    route: vector-api-routes
+    config:
+      uri_param_names:
+        - jwt
+      header_names:
+        - Authorization
+      claims_to_verify:
+        - exp
+      key_claim_name: iss
+
+  - name: jwt
+    route: data-transform-api-routes
+    config:
+      uri_param_names:
+        - jwt
+      header_names:
+        - Authorization
+      claims_to_verify:
+        - exp
+      key_claim_name: iss
+
+  # ---------------------------------------------------------------------------
+  # Rate Limiting (Protected Routes - 100 req/min per consumer)
+  # ---------------------------------------------------------------------------
   - name: rate-limiting
+    route: crypto-api-routes
     config:
       minute: 100
       hour: 1000
@@ -225,164 +647,255 @@ plugins:
       error_code: 429
       error_message: "Rate limit exceeded. Please try again later."
 
-  # Response Transformer (Add headers)
-  - name: response-transformer
+  - name: rate-limiting
+    route: math-api-routes
     config:
-      add:
-        headers:
-          - "X-Powered-By:FlowForge"
-          - "X-API-Version:1.0"
+      minute: 100
+      hour: 1000
+      policy: local
+      fault_tolerant: true
+      error_code: 429
+      error_message: "Rate limit exceeded."
 
-  # Request Size Limiting
-  - name: request-size-limiting
+  - name: rate-limiting
+    route: pdf-api-routes
     config:
-      allowed_payload_size: 10
-      size_unit: megabytes
+      minute: 50
+      hour: 500
+      policy: local
+      fault_tolerant: true
+      error_code: 429
+      error_message: "Rate limit exceeded."
 
-  # Bot Detection
-  - name: bot-detection
+  - name: rate-limiting
+    route: ocr-api-routes
     config:
-      allow:
-        - googlebot
-        - bingbot
-      deny:
-        - curl
-        - wget
+      minute: 50
+      hour: 500
+      policy: local
+      fault_tolerant: true
+      error_code: 429
+      error_message: "Rate limit exceeded."
 
-  # IP Restriction (example - commented out by default)
-  # - name: ip-restriction
-  #   config:
-  #     allow:
-  #       - 127.0.0.1
-  #       - 10.0.0.0/8
-  #       - 172.16.0.0/12
-  #       - 192.168.0.0/16
+  - name: rate-limiting
+    route: image-api-routes
+    config:
+      minute: 100
+      hour: 1000
+      policy: local
+      fault_tolerant: true
+      error_code: 429
+      error_message: "Rate limit exceeded."
 
-# ===========================================
+  - name: rate-limiting
+    route: llm-api-routes
+    config:
+      minute: 30
+      hour: 300
+      policy: local
+      fault_tolerant: true
+      error_code: 429
+      error_message: "Rate limit exceeded."
+
+  - name: rate-limiting
+    route: vector-api-routes
+    config:
+      minute: 100
+      hour: 1000
+      policy: local
+      fault_tolerant: true
+      error_code: 429
+      error_message: "Rate limit exceeded."
+
+  - name: rate-limiting
+    route: data-transform-api-routes
+    config:
+      minute: 100
+      hour: 1000
+      policy: local
+      fault_tolerant: true
+      error_code: 429
+      error_message: "Rate limit exceeded."
+
+# =============================================================================
 # Consumers (API Users)
-# ===========================================
+# =============================================================================
 
 consumers:
-  - username: default-user
-    keyauth_credentials:
-      - key: flowforge-default-api-key
-    jwt_secrets:
-      - key: default-jwt-key
-        secret: flowforge-jwt-secret-change-in-production
-        algorithm: HS256
+  # ---------------------------------------------------------------------------
+  # Admin Consumer (Full Access)
+  # ---------------------------------------------------------------------------
+  - username: admin
+    custom_id: admin-001
+    tags:
+      - admin
+      - internal
 
-  - username: admin-user
-    keyauth_credentials:
-      - key: flowforge-admin-api-key
-    jwt_secrets:
-      - key: admin-jwt-key
-        secret: flowforge-admin-jwt-secret-change-in-production
-        algorithm: HS256
+  # ---------------------------------------------------------------------------
+  # Default API Consumer
+  # ---------------------------------------------------------------------------
+  - username: default-api-user
+    custom_id: default-001
+    tags:
+      - api-user
+      - default
 
+  # ---------------------------------------------------------------------------
+  # Test Consumer (Development/Testing)
+  # ---------------------------------------------------------------------------
   - username: test-user
-    keyauth_credentials:
-      - key: flowforge-test-api-key
+    custom_id: test-001
+    tags:
+      - test
+      - development
 
-# ===========================================
-# Consumer Groups (Rate Limit Tiers)
-# ===========================================
+# =============================================================================
+# JWT Credentials
+# =============================================================================
+# Note: In production, use the Admin API or scripts to create credentials
+# with secure, randomly generated secrets.
+# =============================================================================
 
-consumer_groups:
-  - name: free-tier
-    plugins:
-      - name: rate-limiting-advanced
-        config:
-          limit:
-            - 50
-          window_size:
-            - 60
-          identifier: consumer
+jwt_secrets:
+  # Admin JWT Credential
+  - consumer: admin
+    key: admin
+    secret: flowforge-admin-jwt-secret-change-in-production-min-32-chars
+    algorithm: HS256
+    tags:
+      - admin
 
-  - name: pro-tier
-    plugins:
-      - name: rate-limiting-advanced
-        config:
-          limit:
-            - 500
-          window_size:
-            - 60
-          identifier: consumer
+  # Default API User JWT Credential
+  - consumer: default-api-user
+    key: default-api-user
+    secret: flowforge-default-jwt-secret-change-in-production-min-32-chars
+    algorithm: HS256
+    tags:
+      - default
 
-  - name: enterprise-tier
-    plugins:
-      - name: rate-limiting-advanced
-        config:
-          limit:
-            - 5000
-          window_size:
-            - 60
-          identifier: consumer
+  # Test User JWT Credential
+  - consumer: test-user
+    key: test-user
+    secret: flowforge-test-jwt-secret-change-in-production-min-32-chars
+    algorithm: HS256
+    tags:
+      - test
 
-# ===========================================
-# Service-Specific Plugins
-# ===========================================
+# =============================================================================
+# API Key Credentials (Alternative Auth Method)
+# =============================================================================
 
-# Key Authentication for all API routes
-# Routes requiring API key authentication
-# Comment this section out for open access
+keyauth_credentials:
+  - consumer: admin
+    key: flowforge-admin-api-key-change-in-production
+    tags:
+      - admin
 
-# - name: key-auth
-#   service: crypto-service
-#   config:
-#     key_names:
-#       - X-API-Key
-#       - apikey
-#     key_in_header: true
-#     key_in_query: true
-#     key_in_body: false
-#     hide_credentials: true
+  - consumer: default-api-user
+    key: flowforge-default-api-key-change-in-production
+    tags:
+      - default
 
-# JWT Authentication Plugin (optional - enable per service)
-# - name: jwt
-#   service: crypto-service
-#   config:
-#     uri_param_names:
-#       - jwt
-#     cookie_names: []
-#     header_names:
-#       - Authorization
-#     claims_to_verify:
-#       - exp
-#     key_claim_name: iss
-#     secret_is_base64: false
-#     run_on_preflight: true
+  - consumer: test-user
+    key: flowforge-test-api-key
+    tags:
+      - test
 
-# ===========================================
-# Upstreams (for load balancing)
-# ===========================================
+# =============================================================================
+# Upstreams (Load Balancing & Health Checks)
+# =============================================================================
 
 upstreams:
+  # ---------------------------------------------------------------------------
+  # Crypto Service Upstream
+  # ---------------------------------------------------------------------------
   - name: crypto-service-upstream
-    targets:
-      - target: crypto-service:3001
-        weight: 100
+    algorithm: round-robin
+    hash_on: none
+    slots: 10000
     healthchecks:
       active:
         healthy:
           interval: 30
           successes: 2
+          http_statuses:
+            - 200
+            - 302
         unhealthy:
           interval: 10
           http_failures: 3
-        http_path: /health
+          tcp_failures: 3
+          timeouts: 3
+          http_statuses:
+            - 429
+            - 500
+            - 503
+        type: http
+        http_path: /health/live
         timeout: 5
+        concurrency: 10
       passive:
+        type: http
         healthy:
           successes: 2
+          http_statuses:
+            - 200
+            - 201
+            - 202
+            - 203
+            - 204
+            - 205
+            - 206
+            - 207
+            - 208
+            - 226
+            - 300
+            - 301
+            - 302
+            - 303
+            - 304
+            - 305
+            - 306
+            - 307
+            - 308
         unhealthy:
           http_failures: 3
           tcp_failures: 3
           timeouts: 3
+          http_statuses:
+            - 429
+            - 500
+            - 503
+    targets:
+      - target: crypto-service:3001
+        weight: 100
+        tags:
+          - crypto-service
 
+  # ---------------------------------------------------------------------------
+  # Math Service Upstream
+  # ---------------------------------------------------------------------------
   - name: math-service-upstream
+    algorithm: round-robin
+    healthchecks:
+      active:
+        healthy:
+          interval: 30
+          successes: 2
+        unhealthy:
+          interval: 10
+          http_failures: 3
+        http_path: /health
+        timeout: 5
     targets:
       - target: math-service:3002
         weight: 100
+
+  # ---------------------------------------------------------------------------
+  # PDF Service Upstream
+  # ---------------------------------------------------------------------------
+  - name: pdf-service-upstream
+    algorithm: round-robin
     healthchecks:
       active:
         healthy:
@@ -393,11 +906,15 @@ upstreams:
           http_failures: 3
         http_path: /health
         timeout: 5
-
-  - name: pdf-service-upstream
     targets:
       - target: pdf-service:3003
         weight: 100
+
+  # ---------------------------------------------------------------------------
+  # OCR Service Upstream
+  # ---------------------------------------------------------------------------
+  - name: ocr-service-upstream
+    algorithm: round-robin
     healthchecks:
       active:
         healthy:
@@ -408,11 +925,15 @@ upstreams:
           http_failures: 3
         http_path: /health
         timeout: 5
-
-  - name: ocr-service-upstream
     targets:
       - target: ocr-service:3004
         weight: 100
+
+  # ---------------------------------------------------------------------------
+  # Image Service Upstream
+  # ---------------------------------------------------------------------------
+  - name: image-service-upstream
+    algorithm: round-robin
     healthchecks:
       active:
         healthy:
@@ -423,11 +944,15 @@ upstreams:
           http_failures: 3
         http_path: /health
         timeout: 5
-
-  - name: image-service-upstream
     targets:
       - target: image-service:3005
         weight: 100
+
+  # ---------------------------------------------------------------------------
+  # LLM Service Upstream
+  # ---------------------------------------------------------------------------
+  - name: llm-service-upstream
+    algorithm: round-robin
     healthchecks:
       active:
         healthy:
@@ -438,11 +963,15 @@ upstreams:
           http_failures: 3
         http_path: /health
         timeout: 5
-
-  - name: llm-service-upstream
     targets:
       - target: llm-service:3006
         weight: 100
+
+  # ---------------------------------------------------------------------------
+  # Vector Service Upstream
+  # ---------------------------------------------------------------------------
+  - name: vector-service-upstream
+    algorithm: round-robin
     healthchecks:
       active:
         healthy:
@@ -453,11 +982,15 @@ upstreams:
           http_failures: 3
         http_path: /health
         timeout: 5
-
-  - name: vector-service-upstream
     targets:
       - target: vector-service:3007
         weight: 100
+
+  # ---------------------------------------------------------------------------
+  # Data Transform Service Upstream
+  # ---------------------------------------------------------------------------
+  - name: data-transform-service-upstream
+    algorithm: round-robin
     healthchecks:
       active:
         healthy:
@@ -468,18 +1001,6 @@ upstreams:
           http_failures: 3
         http_path: /health
         timeout: 5
-
-  - name: data-transform-service-upstream
     targets:
       - target: data-transform-service:3008
         weight: 100
-    healthchecks:
-      active:
-        healthy:
-          interval: 30
-          successes: 2
-        unhealthy:
-          interval: 10
-          http_failures: 3
-        http_path: /health
-        timeout: 5

@@ -1,0 +1,153 @@
+{
+  "$schema": "../../forgehook-schema.json",
+  "id": "llm-service",
+  "name": "LLM Service",
+  "version": "1.0.0",
+  "description": "Large Language Model service for text generation, completion, summarization, translation, and embeddings with OpenAI-compatible API",
+  "author": {
+    "name": "FlowForge",
+    "url": "https://flowforge.dev"
+  },
+  "license": "MIT",
+  "repository": "https://github.com/flowforge/llm-service",
+  "icon": "brain",
+  "category": "ai",
+  "tags": ["llm", "ai", "gpt", "text-generation", "completion", "embeddings", "openai"],
+  
+  "image": {
+    "repository": "flowforge/llm-service",
+    "tag": "1.0.0"
+  },
+  
+  "port": 4006,
+  "basePath": "/api/v1/llm",
+  
+  "healthCheck": {
+    "path": "/health",
+    "interval": 30,
+    "timeout": 10,
+    "retries": 3
+  },
+  
+  "endpoints": [
+    {
+      "method": "POST",
+      "path": "/chat/completions",
+      "description": "Generate chat completions (OpenAI-compatible)",
+      "requestBody": {
+        "model": "gpt-3.5-turbo",
+        "messages": [
+          { "role": "user", "content": "Hello!" }
+        ],
+        "temperature": 0.7
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/completions",
+      "description": "Generate text completions",
+      "requestBody": {
+        "model": "gpt-3.5-turbo-instruct",
+        "prompt": "Once upon a time",
+        "max_tokens": 100
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/embeddings",
+      "description": "Generate text embeddings",
+      "requestBody": {
+        "model": "text-embedding-ada-002",
+        "input": "Hello, world!"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/summarize",
+      "description": "Summarize text content",
+      "requestBody": {
+        "text": "Long text to summarize...",
+        "max_length": 200
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/translate",
+      "description": "Translate text between languages",
+      "requestBody": {
+        "text": "Hello, world!",
+        "source_language": "en",
+        "target_language": "es"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/analyze-sentiment",
+      "description": "Analyze sentiment of text",
+      "requestBody": {
+        "text": "I love this product!"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/models",
+      "description": "List available models",
+      "authentication": false
+    },
+    {
+      "method": "GET",
+      "path": "/health",
+      "description": "Health check endpoint",
+      "authentication": false
+    }
+  ],
+  
+  "environment": [
+    {
+      "name": "LOG_LEVEL",
+      "description": "Logging verbosity level",
+      "default": "info",
+      "required": false
+    },
+    {
+      "name": "OPENAI_API_KEY",
+      "description": "OpenAI API key",
+      "required": false,
+      "secret": true
+    },
+    {
+      "name": "OPENAI_API_BASE",
+      "description": "OpenAI API base URL (for compatible providers)",
+      "required": false
+    },
+    {
+      "name": "DEFAULT_MODEL",
+      "description": "Default model to use",
+      "default": "gpt-3.5-turbo",
+      "required": false
+    },
+    {
+      "name": "MAX_TOKENS",
+      "description": "Maximum tokens per request",
+      "default": "4096",
+      "required": false
+    }
+  ],
+  
+  "volumes": [
+    {
+      "name": "models",
+      "containerPath": "/models",
+      "description": "Directory for local model storage"
+    }
+  ],
+  
+  "dependencies": {
+    "services": ["redis"]
+  },
+  
+  "resources": {
+    "memory": "2g",
+    "cpu": "2.0"
+  }
+}

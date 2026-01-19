@@ -1,94 +1,60 @@
-import express from 'express';
-import cors from 'cors';
-import helmet from 'helmet';
-import compression from 'compression';
-import { pinoHttp } from 'pino-http';
+import { buildApp } from './app';
 import { config } from './config';
 import { logger } from './utils/logger';
-import { errorHandler } from './middleware/error-handler';
-import { requestId } from './middleware/request-id';
-import { healthRoutes } from './routes/health';
-import { hashRoutes } from './routes/hash';
-import { encryptRoutes } from './routes/encrypt';
-import { decryptRoutes } from './routes/decrypt';
-import { keyRoutes } from './routes/key';
-import { jwtRoutes } from './routes/jwt';
-import { openApiSpec } from './openapi';
 
-const app = express();
+async function main(): Promise<void> {
+  const app = await buildApp();
 
-// Security middleware
-app.use(helmet());
-app.use(cors({
-  origin: config.cors.origins,
-  methods: ['GET', 'POST', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-API-Key', 'X-Request-ID'],
-}));
+  // Graceful shutdown handler
+  const shutdown = async (signal: string) => {
+    logger.info({ signal }, 'Received shutdown signal');
 
-// Compression
-app.use(compression());
+    try {
+      await app.close();
+      logger.info('Server closed gracefully');
+      process.exit(0);
+    } catch (err) {
+      logger.error({ err }, 'Error during shutdown');
+      process.exit(1);
+    }
+  };
 
-// Body parsing
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+  // Register shutdown handlers
+  process.on('SIGTERM', () => shutdown('SIGTERM'));
+  process.on('SIGINT', () => shutdown('SIGINT'));
 
-// Request ID middleware
-app.use(requestId);
-
-// Logging
-app.use(pinoHttp({
-  logger,
-  customLogLevel: (_req, res, err) => {
-    if (res.statusCode >= 400 && res.statusCode < 500) return 'warn';
-    if (res.statusCode >= 500 || err) return 'error';
-    return 'info';
-  },
-}));
-
-// Health & Metrics routes (no prefix)
-app.use('/', healthRoutes);
-
-// OpenAPI spec
-app.get('/openapi.json', (_req, res) => {
-  res.json(openApiSpec);
-});
-
-// API routes
-app.use('/api/v1/crypto', hashRoutes);
-app.use('/api/v1/crypto', encryptRoutes);
-app.use('/api/v1/crypto', decryptRoutes);
-app.use('/api/v1/crypto', keyRoutes);
-app.use('/api/v1/crypto', jwtRoutes);
-
-// 404 handler
-app.use((_req, res) => {
-  res.status(404).json({
-    success: false,
-    error: {
-      code: 'NOT_FOUND',
-      message: 'The requested endpoint does not exist',
-    },
+  // Handle uncaught exceptions
+  process.on('uncaughtException', (error) => {
+    logger.fatal({ err: error }, 'Uncaught exception');
+    process.exit(1);
   });
-});
 
-// Error handler
-app.use(errorHandler);
+  // Handle unhandled promise rejections
+  process.on('unhandledRejection', (reason, promise) => {
+    logger.fatal({ reason, promise }, 'Unhandled promise rejection');
+    process.exit(1);
+  });
 
-// Graceful shutdown
-const shutdown = async () => {
-  logger.info('Shutting down gracefully...');
-  process.exit(0);
-};
+  try {
+    // Start the server
+    await app.listen({
+      port: config.server.port,
+      host: config.server.host,
+    });
 
-process.on('SIGTERM', shutdown);
-process.on('SIGINT', shutdown);
+    logger.info(
+      {
+        port: config.server.port,
+        host: config.server.host,
+        env: config.server.env,
+        docs: `http://${config.server.host === '0.0.0.0' ? 'localhost' : config.server.host}:${config.server.port}/docs`,
+      },
+      '🔐 Crypto Service started successfully'
+    );
+  } catch (err) {
+    logger.fatal({ err }, 'Failed to start server');
+    process.exit(1);
+  }
+}
 
-// Start server
-const server = app.listen(config.port, () => {
-  logger.info({
-    port: config.port,
-    environment: config.nodeEnv,
-  }, `Crypto service started on port ${config.port}`);
-});
-
-export { app, server };
+main();

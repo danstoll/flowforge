@@ -1,0 +1,106 @@
+version: '3.8'
+
+# Backend-only deployment for remote development
+# Deploy this to 10.0.0.115 while developing UI locally
+
+services:
+  # ==========================================================================
+  # Database
+  # ==========================================================================
+  postgres:
+    image: postgres:15-alpine
+    container_name: flowforge-postgres
+    environment:
+      POSTGRES_USER: flowforge
+      POSTGRES_PASSWORD: flowforge_password
+      POSTGRES_DB: flowforge
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U flowforge -d flowforge"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # ==========================================================================
+  # Redis Cache
+  # ==========================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: flowforge-redis
+    command: redis-server --appendonly yes --requirepass redis_password
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "redis_password", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # ==========================================================================
+  # FlowForge Backend API
+  # ==========================================================================
+  flowforge-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: flowforge-api
+    environment:
+      NODE_ENV: development
+      PORT: 4000
+      LOG_LEVEL: info
+      
+      # Database
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: flowforge
+      POSTGRES_PASSWORD: flowforge_password
+      POSTGRES_DB: flowforge
+      
+      # Redis
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: redis_password
+      
+      # Docker
+      DOCKER_SOCKET_PATH: /var/run/docker.sock
+      DOCKER_NETWORK: flowforge-network
+      
+      # Plugins
+      PLUGIN_PORT_RANGE_START: 5001
+      PLUGIN_PORT_RANGE_END: 5999
+      
+      # Static files - serve API only, no frontend in dev mode
+      STATIC_PATH: /app/dist/public
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - plugin_data:/app/data
+    ports:
+      - "4000:4000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+networks:
+  default:
+    name: flowforge-network
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:
+  plugin_data:

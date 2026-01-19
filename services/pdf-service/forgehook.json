@@ -1,0 +1,133 @@
+{
+  "$schema": "../../forgehook-schema.json",
+  "id": "pdf-service",
+  "name": "PDF Service",
+  "version": "1.0.0",
+  "description": "PDF document processing including text extraction, merging, splitting, compression, conversion, and watermarking",
+  "author": {
+    "name": "FlowForge",
+    "url": "https://flowforge.dev"
+  },
+  "license": "MIT",
+  "repository": "https://github.com/flowforge/pdf-service",
+  "icon": "file-text",
+  "category": "data",
+  "tags": ["pdf", "document", "extract", "merge", "split", "convert", "watermark"],
+  
+  "image": {
+    "repository": "flowforge/pdf-service",
+    "tag": "1.0.0"
+  },
+  
+  "port": 4003,
+  "basePath": "/api/v1/pdf",
+  
+  "healthCheck": {
+    "path": "/health",
+    "interval": 30,
+    "timeout": 10,
+    "retries": 3
+  },
+  
+  "endpoints": [
+    {
+      "method": "POST",
+      "path": "/extract-text",
+      "description": "Extract text content from PDF documents",
+      "requestBody": {
+        "file": "base64-encoded-pdf",
+        "pages": [1, 2, 3]
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/merge",
+      "description": "Merge multiple PDF files into one",
+      "requestBody": {
+        "files": ["base64-pdf-1", "base64-pdf-2"]
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/split",
+      "description": "Split a PDF into multiple documents",
+      "requestBody": {
+        "file": "base64-encoded-pdf",
+        "ranges": [[1, 5], [6, 10]]
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/compress",
+      "description": "Compress PDF to reduce file size",
+      "requestBody": {
+        "file": "base64-encoded-pdf",
+        "quality": "medium"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/to-image",
+      "description": "Convert PDF pages to images",
+      "requestBody": {
+        "file": "base64-encoded-pdf",
+        "format": "png",
+        "dpi": 150
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/watermark",
+      "description": "Add text or image watermark to PDF",
+      "requestBody": {
+        "file": "base64-encoded-pdf",
+        "text": "CONFIDENTIAL",
+        "opacity": 0.3
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/metadata",
+      "description": "Get or set PDF metadata",
+      "requestBody": {
+        "file": "base64-encoded-pdf"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/health",
+      "description": "Health check endpoint",
+      "authentication": false
+    }
+  ],
+  
+  "environment": [
+    {
+      "name": "LOG_LEVEL",
+      "description": "Logging verbosity level",
+      "default": "info",
+      "required": false
+    },
+    {
+      "name": "PDF_MAX_SIZE_MB",
+      "description": "Maximum PDF file size in MB",
+      "default": "100",
+      "required": false
+    },
+    {
+      "name": "TEMP_DIR",
+      "description": "Temporary directory for processing",
+      "default": "/tmp",
+      "required": false
+    }
+  ],
+  
+  "dependencies": {
+    "services": ["redis"]
+  },
+  
+  "resources": {
+    "memory": "512m",
+    "cpu": "1.0"
+  }
+}

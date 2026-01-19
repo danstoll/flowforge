@@ -1,0 +1,432 @@
+# FlowForge Remote Docker Deployment
+
+## 🎯 Setup Overview
+
+Your Docker server is running on:
+- **Host**: 10.0.0.115
+- **User**: dan
+- **Authentication**: SSH key
+
+---
+
+## 🔑 Step 1: Configure SSH Connection
+
+### Test SSH Connection
+
+```bash
+# Test SSH access
+ssh dan@10.0.0.115
+
+# If successful, you should get a shell
+# Type 'exit' to close
+```
+
+### Set Up Docker Context (Recommended)
+
+This allows you to use `docker` commands locally that execute on the remote server:
+
+```bash
+# Create a Docker context for remote server
+docker context create flowforge-remote \
+  --docker "host=ssh://dan@10.0.0.115"
+
+# List contexts
+docker context ls
+
+# Switch to remote context
+docker context use flowforge-remote
+
+# Test connection
+docker ps
+```
+
+**Now all `docker` and `docker compose` commands will run on 10.0.0.115!**
+
+---
+
+## 📦 Step 2: Deploy FlowForge
+
+### Option A: Using Docker Context (Recommended)
+
+```bash
+# Make sure you're using the remote context
+docker context use flowforge-remote
+
+# Navigate to project
+cd f:/Projects/lcncAK/flowforge
+
+# Deploy to remote server
+docker compose -f docker-compose.unified.yml up -d
+
+# Check status
+docker compose -f docker-compose.unified.yml ps
+
+# View logs
+docker compose -f docker-compose.unified.yml logs -f flowforge
+```
+
+### Option B: Using DOCKER_HOST Environment Variable
+
+```bash
+# Set Docker host for this session
+export DOCKER_HOST="ssh://dan@10.0.0.115"
+
+# Or on Windows (PowerShell)
+$env:DOCKER_HOST = "ssh://dan@10.0.0.115"
+
+# Now deploy
+cd f:/Projects/lcncAK/flowforge
+docker compose -f docker-compose.unified.yml up -d
+```
+
+### Option C: Direct SSH Deployment
+
+```bash
+# Copy project to remote server
+scp -r f:/Projects/lcncAK/flowforge dan@10.0.0.115:~/
+
+# SSH into server
+ssh dan@10.0.0.115
+
+# On remote server:
+cd ~/flowforge
+docker compose -f docker-compose.unified.yml up -d
+```
+
+---
+
+## 🌐 Step 3: Access FlowForge
+
+After deployment, FlowForge will be accessible at:
+
+- **Web UI**: http://10.0.0.115:3000
+- **API**: http://10.0.0.115:3000/api/v1/...
+- **Kong Gateway**: http://10.0.0.115:8000
+
+### Update Frontend API Configuration
+
+Since the server is remote, you need to update the frontend to call the correct API URL.
+
+**Option 1: Use environment variable** (at build time)
+
+Edit `docker-compose.unified.yml`:
+
+```yaml
+flowforge:
+  build:
+    context: ./web-ui
+    dockerfile: Dockerfile.unified
+    args:
+      VITE_API_HOST: 10.0.0.115  # Add this
+  environment:
+    # ... existing vars
+```
+
+**Option 2: Configure at runtime** (recommended)
+
+The frontend is already set up to use the same origin, so if you access FlowForge at `http://10.0.0.115:3000`, it will automatically call APIs at `http://10.0.0.115:3000/api/v1/...`.
+
+**No changes needed!** Just access via the server IP.
+
+---
+
+## 🧪 Step 4: Test Deployment
+
+### From Your Local Machine
+
+```bash
+# Test health endpoint
+curl http://10.0.0.115:3000/api/v1/health | jq
+
+# Test registry
+curl http://10.0.0.115:3000/api/v1/registry/stats | jq
+
+# Open web UI in browser
+start http://10.0.0.115:3000
+```
+
+### Check Container Status (Remote)
+
+```bash
+# Using Docker context
+docker context use flowforge-remote
+docker compose -f docker-compose.unified.yml ps
+
+# Or via SSH
+ssh dan@10.0.0.115 "docker ps"
+```
+
+### View Logs (Remote)
+
+```bash
+# Using Docker context
+docker context use flowforge-remote
+docker logs flowforge -f
+
+# Or via SSH
+ssh dan@10.0.0.115 "docker logs flowforge -f"
+```
+
+---
+
+## 🔧 Common Operations
+
+### Deploy/Update
+
+```bash
+# Switch to remote context
+docker context use flowforge-remote
+
+# Navigate to project
+cd f:/Projects/lcncAK/flowforge
+
+# Pull latest changes, rebuild, restart
+docker compose -f docker-compose.unified.yml up -d --build
+```
+
+### Stop Services
+
+```bash
+docker context use flowforge-remote
+docker compose -f docker-compose.unified.yml down
+```
+
+### View Logs
+
+```bash
+docker context use flowforge-remote
+docker compose -f docker-compose.unified.yml logs -f
+```
+
+### Restart Single Service
+
+```bash
+docker context use flowforge-remote
+docker compose -f docker-compose.unified.yml restart flowforge
+```
+
+### Access Server Shell
+
+```bash
+# SSH into server
+ssh dan@10.0.0.115
+
+# Or execute remote command
+ssh dan@10.0.0.115 "docker exec -it flowforge sh"
+```
+
+---
+
+## 🐛 Troubleshooting
+
+### SSH Connection Issues
+
+**Error**: `Permission denied (publickey)`
+
+**Solution**:
+```bash
+# Specify SSH key explicitly
+ssh -i ~/.ssh/your_key dan@10.0.0.115
+
+# Add key to SSH agent
+ssh-add ~/.ssh/your_key
+
+# Or create Docker context with key
+docker context create flowforge-remote \
+  --docker "host=ssh://dan@10.0.0.115" \
+  --ssh-key ~/.ssh/your_key
+```
+
+### Port Forwarding (Optional)
+
+If you want to access the remote server as if it were local:
+
+```bash
+# Forward port 3000 from remote to local
+ssh -L 3000:localhost:3000 dan@10.0.0.115
+
+# Now access at http://localhost:3000 (forwarded to remote)
+```
+
+### Firewall Issues
+
+Make sure ports are open on the remote server:
+
+```bash
+# On remote server, check firewall
+ssh dan@10.0.0.115 "sudo ufw status"
+
+# Allow ports if needed
+ssh dan@10.0.0.115 "sudo ufw allow 3000/tcp"
+ssh dan@10.0.0.115 "sudo ufw allow 8000/tcp"
+```
+
+### Docker Socket Permissions
+
+If you get "permission denied" errors:
+
+```bash
+# Add dan user to docker group on remote server
+ssh dan@10.0.0.115 "sudo usermod -aG docker dan"
+
+# Logout and login again for changes to take effect
+```
+
+---
+
+## 📋 Quick Reference
+
+### Set Remote Context
+
+```bash
+docker context create flowforge-remote --docker "host=ssh://dan@10.0.0.115"
+docker context use flowforge-remote
+```
+
+### Deploy
+
+```bash
+cd f:/Projects/lcncAK/flowforge
+docker compose -f docker-compose.unified.yml up -d
+```
+
+### Check Status
+
+```bash
+docker compose -f docker-compose.unified.yml ps
+```
+
+### View Logs
+
+```bash
+docker logs flowforge -f
+```
+
+### Access UI
+
+http://10.0.0.115:3000
+
+### Test API
+
+```bash
+curl http://10.0.0.115:3000/api/v1/health
+```
+
+### Stop
+
+```bash
+docker compose -f docker-compose.unified.yml down
+```
+
+---
+
+## 🔐 Security Considerations
+
+### SSH Key Security
+
+- Keep your SSH key secure
+- Use `ssh-agent` to avoid typing passphrase repeatedly
+- Consider using `~/.ssh/config` for easier access:
+
+```
+# ~/.ssh/config
+Host flowforge
+    HostName 10.0.0.115
+    User dan
+    IdentityFile ~/.ssh/your_key
+```
+
+Then simply: `ssh flowforge`
+
+### Network Security
+
+- Consider using VPN if 10.0.0.115 is not on your local network
+- Use HTTPS/SSL in production (configure Kong or add reverse proxy)
+- Restrict Docker API access to trusted IPs
+
+### Environment Variables
+
+- Update `.env` with strong passwords
+- Don't commit `.env` to git
+- Use secrets management for production
+
+---
+
+## 📊 Architecture (Remote Deployment)
+
+```
+┌──────────────────────────────────────────────────────┐
+│  Your Machine (Windows)                              │
+│  f:/Projects/lcncAK/flowforge                        │
+│                                                      │
+│  Docker Context: flowforge-remote                   │
+│  Commands executed via SSH                          │
+└───────────────────────┬──────────────────────────────┘
+                        │ SSH (dan@10.0.0.115)
+                        │
+                        ▼
+┌──────────────────────────────────────────────────────┐
+│  Remote Docker Server (10.0.0.115)                  │
+│                                                      │
+│  ┌────────────────────────────────────────────────┐ │
+│  │  FlowForge Container (Port 3000)               │ │
+│  │  - Frontend (React)                            │ │
+│  │  - Backend (Fastify)                           │ │
+│  └────────────────────────────────────────────────┘ │
+│                                                      │
+│  ┌────────────────────────────────────────────────┐ │
+│  │  PostgreSQL, Redis, Qdrant, Kong              │ │
+│  └────────────────────────────────────────────────┘ │
+│                                                      │
+│  ┌────────────────────────────────────────────────┐ │
+│  │  ForgeHook Containers (Dynamic)                │ │
+│  │  Port range: 4001-4999                         │ │
+│  └────────────────────────────────────────────────┘ │
+└──────────────────────────────────────────────────────┘
+                        │
+                        │ HTTP
+                        ▼
+            Access from any machine on network:
+            http://10.0.0.115:3000
+```
+
+---
+
+## ✅ Deployment Checklist
+
+- [ ] SSH key is set up for dan@10.0.0.115
+- [ ] Can SSH into server: `ssh dan@10.0.0.115`
+- [ ] Docker context created: `docker context create flowforge-remote`
+- [ ] Context switched: `docker context use flowforge-remote`
+- [ ] Test Docker connection: `docker ps` (should show remote containers)
+- [ ] `.env` file configured
+- [ ] Deploy: `docker compose -f docker-compose.unified.yml up -d`
+- [ ] Check status: `docker compose ps`
+- [ ] Test API: `curl http://10.0.0.115:3000/api/v1/health`
+- [ ] Access UI: http://10.0.0.115:3000
+
+---
+
+## 🚀 Ready to Deploy!
+
+Your remote Docker setup is ready. Follow these steps:
+
+```bash
+# 1. Create Docker context
+docker context create flowforge-remote --docker "host=ssh://dan@10.0.0.115"
+
+# 2. Switch to remote context
+docker context use flowforge-remote
+
+# 3. Test connection
+docker ps
+
+# 4. Deploy FlowForge
+cd f:/Projects/lcncAK/flowforge
+docker compose -f docker-compose.unified.yml up -d
+
+# 5. Access
+# http://10.0.0.115:3000
+```
+
+**Note**: All Docker commands will now execute on the remote server automatically!

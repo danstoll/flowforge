@@ -1,4 +1,7 @@
-FROM kong:3.4-alpine
+FROM kong:3.9-alpine
+
+# Install additional tools for debugging
+RUN apk add --no-cache curl jq
 
 # Copy declarative configuration
 COPY kong.yml /etc/kong/declarative/kong.yml

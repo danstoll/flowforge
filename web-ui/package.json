@@ -6,7 +6,17 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "lint": "eslint . --ext ts,tsx"
+    "lint": "eslint . --ext ts,tsx",
+    "lint:fix": "eslint . --ext ts,tsx --fix",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest run --coverage",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:headed": "playwright test --headed",
+    "docker:build": "docker build -t flowforge-web-ui .",
+    "docker:run": "docker run -p 8080:80 flowforge-web-ui"
   },
   "dependencies": {
     "react": "^18.2.0",
@@ -24,9 +34,16 @@
     "@radix-ui/react-dropdown-menu": "^2.0.6",
     "@radix-ui/react-switch": "^1.0.3",
     "@radix-ui/react-toast": "^1.1.5",
+    "@radix-ui/react-tooltip": "^1.0.7",
+    "@radix-ui/react-scroll-area": "^1.0.5",
+    "@radix-ui/react-separator": "^1.0.3",
+    "@radix-ui/react-label": "^2.0.2",
+    "@radix-ui/react-avatar": "^1.0.4",
+    "@radix-ui/react-alert-dialog": "^1.0.5",
     "class-variance-authority": "^0.7.0",
     "react-syntax-highlighter": "^15.5.0",
-    "zustand": "^4.4.7"
+    "zustand": "^4.4.7",
+    "date-fns": "^3.2.0"
   },
   "devDependencies": {
     "@types/react": "^18.2.47",
@@ -37,6 +54,18 @@
     "postcss": "^8.4.33",
     "tailwindcss": "^3.4.1",
     "typescript": "^5.3.3",
-    "vite": "^5.0.11"
+    "vite": "^5.0.11",
+    "vitest": "^1.2.0",
+    "@vitest/ui": "^1.2.0",
+    "@vitest/coverage-v8": "^1.2.0",
+    "@testing-library/react": "^14.1.2",
+    "@testing-library/jest-dom": "^6.2.0",
+    "@testing-library/user-event": "^14.5.2",
+    "@playwright/test": "^1.41.0",
+    "jsdom": "^23.2.0",
+    "eslint": "^8.56.0",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "@typescript-eslint/eslint-plugin": "^6.18.1",
+    "@typescript-eslint/parser": "^6.18.1"
   }
 }

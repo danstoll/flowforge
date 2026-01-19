@@ -1,0 +1,6 @@
+# Certificates placeholder - DO NOT COMMIT ACTUAL CERTIFICATES
+*.crt
+*.key
+*.pem
+*.csr
+!README.md

@@ -1,0 +1,333 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://flowforge.dev/schemas/forgehook-manifest.json",
+  "title": "ForgeHook Manifest",
+  "description": "Schema for FlowForge plugin manifests",
+  "type": "object",
+  "required": ["id", "name", "version", "description", "image", "port", "endpoints"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*$",
+      "description": "Unique identifier for the ForgeHook (lowercase, alphanumeric, hyphens)",
+      "examples": ["crypto-service", "llm-openai", "pdf-tools"]
+    },
+    "name": {
+      "type": "string",
+      "minLength": 2,
+      "maxLength": 50,
+      "description": "Display name for the ForgeHook",
+      "examples": ["Crypto Service", "OpenAI LLM", "PDF Tools"]
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+(-[a-z0-9.]+)?$",
+      "description": "Semantic version",
+      "examples": ["1.0.0", "2.1.0-beta.1"]
+    },
+    "description": {
+      "type": "string",
+      "maxLength": 500,
+      "description": "Brief description of what this ForgeHook does"
+    },
+    "author": {
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "url": { "type": "string", "format": "uri" }
+      }
+    },
+    "license": {
+      "type": "string",
+      "default": "MIT",
+      "examples": ["MIT", "Apache-2.0", "GPL-3.0"]
+    },
+    "repository": {
+      "type": "string",
+      "format": "uri",
+      "description": "Source code repository URL"
+    },
+    "documentation": {
+      "type": "string",
+      "format": "uri",
+      "description": "Documentation URL"
+    },
+    "icon": {
+      "type": "string",
+      "description": "Icon name (lucide-react) or URL to icon image",
+      "examples": ["lock", "calculator", "file-text", "https://example.com/icon.svg"]
+    },
+    "category": {
+      "type": "string",
+      "enum": ["security", "ai", "data", "media", "integration", "utility", "analytics", "communication"],
+      "description": "Plugin category for marketplace organization"
+    },
+    "tags": {
+      "type": "array",
+      "items": { "type": "string" },
+      "maxItems": 10,
+      "description": "Searchable tags",
+      "examples": [["encryption", "hashing", "jwt"]]
+    },
+    "image": {
+      "type": "object",
+      "required": ["repository"],
+      "properties": {
+        "repository": {
+          "type": "string",
+          "description": "Docker image repository",
+          "examples": ["flowforge/crypto-service", "ghcr.io/flowforge/llm-service"]
+        },
+        "tag": {
+          "type": "string",
+          "default": "latest",
+          "description": "Docker image tag"
+        },
+        "digest": {
+          "type": "string",
+          "pattern": "^sha256:[a-f0-9]{64}$",
+          "description": "Optional image digest for pinning"
+        }
+      }
+    },
+    "port": {
+      "type": "integer",
+      "minimum": 1024,
+      "maximum": 65535,
+      "description": "Internal container port the service listens on"
+    },
+    "hostPort": {
+      "type": "integer",
+      "minimum": 1024,
+      "maximum": 65535,
+      "description": "Optional fixed host port mapping (auto-assigned if not specified)"
+    },
+    "basePath": {
+      "type": "string",
+      "pattern": "^/api/v\\d+/[a-z][a-z0-9-]*$",
+      "description": "API base path for Kong routing",
+      "examples": ["/api/v1/crypto", "/api/v1/llm"]
+    },
+    "healthCheck": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string",
+          "default": "/health",
+          "description": "Health check endpoint path"
+        },
+        "interval": {
+          "type": "integer",
+          "default": 30,
+          "description": "Health check interval in seconds"
+        },
+        "timeout": {
+          "type": "integer",
+          "default": 10,
+          "description": "Health check timeout in seconds"
+        },
+        "retries": {
+          "type": "integer",
+          "default": 3,
+          "description": "Number of retries before marking unhealthy"
+        }
+      }
+    },
+    "endpoints": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["method", "path", "description"],
+        "properties": {
+          "method": {
+            "type": "string",
+            "enum": ["GET", "POST", "PUT", "PATCH", "DELETE"]
+          },
+          "path": {
+            "type": "string",
+            "description": "Endpoint path relative to basePath"
+          },
+          "description": {
+            "type": "string",
+            "description": "Human-readable description"
+          },
+          "requestBody": {
+            "type": "object",
+            "description": "Example request body for playground"
+          },
+          "authentication": {
+            "type": "boolean",
+            "default": true,
+            "description": "Whether this endpoint requires authentication"
+          },
+          "rateLimit": {
+            "type": "object",
+            "properties": {
+              "requests": { "type": "integer" },
+              "period": { "type": "string", "enum": ["second", "minute", "hour", "day"] }
+            },
+            "description": "Custom rate limit for this endpoint"
+          }
+        }
+      }
+    },
+    "config": {
+      "type": "object",
+      "description": "Configuration schema for the ForgeHook",
+      "properties": {
+        "schema": {
+          "type": "object",
+          "description": "JSON Schema for configuration options"
+        },
+        "defaults": {
+          "type": "object",
+          "description": "Default configuration values"
+        }
+      }
+    },
+    "environment": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "description"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Environment variable name"
+          },
+          "description": {
+            "type": "string",
+            "description": "What this variable configures"
+          },
+          "required": {
+            "type": "boolean",
+            "default": false
+          },
+          "secret": {
+            "type": "boolean",
+            "default": false,
+            "description": "Whether this is a sensitive value"
+          },
+          "default": {
+            "type": "string",
+            "description": "Default value if not provided"
+          },
+          "validation": {
+            "type": "string",
+            "description": "Regex pattern for validation"
+          }
+        }
+      }
+    },
+    "volumes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "containerPath"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Volume name (will be prefixed with forgehook-)"
+          },
+          "containerPath": {
+            "type": "string",
+            "description": "Mount path inside container"
+          },
+          "description": {
+            "type": "string",
+            "description": "What this volume is used for"
+          },
+          "readOnly": {
+            "type": "boolean",
+            "default": false
+          }
+        }
+      }
+    },
+    "resources": {
+      "type": "object",
+      "properties": {
+        "memory": {
+          "type": "string",
+          "pattern": "^\\d+[mg]$",
+          "default": "512m",
+          "description": "Memory limit",
+          "examples": ["256m", "1g", "2g"]
+        },
+        "cpu": {
+          "type": "string",
+          "pattern": "^\\d+(\\.\\d+)?$",
+          "default": "1",
+          "description": "CPU limit (cores)",
+          "examples": ["0.5", "1", "2"]
+        },
+        "gpu": {
+          "type": "boolean",
+          "default": false,
+          "description": "Whether GPU access is required"
+        }
+      }
+    },
+    "dependencies": {
+      "type": "object",
+      "properties": {
+        "forgehooks": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id"],
+            "properties": {
+              "id": { "type": "string" },
+              "version": { "type": "string" },
+              "optional": { "type": "boolean", "default": false }
+            }
+          },
+          "description": "Other ForgeHooks this plugin depends on"
+        },
+        "services": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["redis", "postgres", "qdrant"]
+          },
+          "description": "Core FlowForge services required"
+        }
+      }
+    },
+    "capabilities": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "network-host",
+          "privileged",
+          "sys-admin",
+          "gpu"
+        ]
+      },
+      "description": "Special Docker capabilities required (requires admin approval)"
+    },
+    "hooks": {
+      "type": "object",
+      "properties": {
+        "onInstall": {
+          "type": "string",
+          "description": "Command to run after installation"
+        },
+        "onStart": {
+          "type": "string",
+          "description": "Command to run on container start"
+        },
+        "onStop": {
+          "type": "string",
+          "description": "Command to run before container stop"
+        },
+        "onUninstall": {
+          "type": "string",
+          "description": "Command to run before uninstallation"
+        }
+      }
+    }
+  }
+}

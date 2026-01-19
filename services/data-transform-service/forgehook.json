@@ -1,0 +1,160 @@
+{
+  "$schema": "../../forgehook-schema.json",
+  "id": "data-transform-service",
+  "name": "Data Transform Service",
+  "version": "1.0.0",
+  "description": "Data transformation operations including JSON manipulation, CSV parsing, XML conversion, format mapping, and data validation",
+  "author": {
+    "name": "FlowForge",
+    "url": "https://flowforge.dev"
+  },
+  "license": "MIT",
+  "repository": "https://github.com/flowforge/data-transform-service",
+  "icon": "repeat",
+  "category": "data",
+  "tags": ["transform", "json", "csv", "xml", "mapping", "validation", "conversion"],
+  
+  "image": {
+    "repository": "flowforge/data-transform-service",
+    "tag": "1.0.0"
+  },
+  
+  "port": 4008,
+  "basePath": "/api/v1/transform",
+  
+  "healthCheck": {
+    "path": "/health",
+    "interval": 30,
+    "timeout": 10,
+    "retries": 3
+  },
+  
+  "endpoints": [
+    {
+      "method": "POST",
+      "path": "/json/query",
+      "description": "Query JSON data using JSONPath or JMESPath",
+      "requestBody": {
+        "data": { "users": [{ "name": "John" }] },
+        "query": "$.users[0].name",
+        "engine": "jsonpath"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/json/transform",
+      "description": "Transform JSON using a mapping template",
+      "requestBody": {
+        "data": { "firstName": "John", "lastName": "Doe" },
+        "template": { "fullName": "{{firstName}} {{lastName}}" }
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/csv/parse",
+      "description": "Parse CSV to JSON",
+      "requestBody": {
+        "data": "name,age\nJohn,30\nJane,25",
+        "options": { "header": true }
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/csv/generate",
+      "description": "Generate CSV from JSON",
+      "requestBody": {
+        "data": [{ "name": "John", "age": 30 }],
+        "options": { "header": true }
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/xml/parse",
+      "description": "Parse XML to JSON",
+      "requestBody": {
+        "data": "<root><item>value</item></root>"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/xml/generate",
+      "description": "Generate XML from JSON",
+      "requestBody": {
+        "data": { "root": { "item": "value" } }
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/validate",
+      "description": "Validate data against a JSON Schema",
+      "requestBody": {
+        "data": { "name": "John", "age": 30 },
+        "schema": {
+          "type": "object",
+          "required": ["name"],
+          "properties": {
+            "name": { "type": "string" },
+            "age": { "type": "integer" }
+          }
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/flatten",
+      "description": "Flatten nested JSON to dot notation",
+      "requestBody": {
+        "data": { "user": { "name": "John" } }
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/unflatten",
+      "description": "Unflatten dot notation to nested JSON",
+      "requestBody": {
+        "data": { "user.name": "John" }
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/merge",
+      "description": "Deep merge multiple JSON objects",
+      "requestBody": {
+        "objects": [
+          { "a": 1, "b": 2 },
+          { "b": 3, "c": 4 }
+        ]
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/health",
+      "description": "Health check endpoint",
+      "authentication": false
+    }
+  ],
+  
+  "environment": [
+    {
+      "name": "LOG_LEVEL",
+      "description": "Logging verbosity level",
+      "default": "info",
+      "required": false
+    },
+    {
+      "name": "MAX_PAYLOAD_SIZE",
+      "description": "Maximum payload size in MB",
+      "default": "10",
+      "required": false
+    }
+  ],
+  
+  "dependencies": {
+    "services": ["redis"]
+  },
+  
+  "resources": {
+    "memory": "256m",
+    "cpu": "0.5"
+  }
+}

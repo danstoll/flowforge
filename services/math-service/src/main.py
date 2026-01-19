@@ -11,7 +11,8 @@ from fastapi.responses import JSONResponse
 from loguru import logger
 
 from src.config import settings
-from src.routes import calculate, statistics, matrix, health
+from src.routes import calculate, statistics, matrix, health, excel, finance
+from src.routes import text, logical, datetime, array, math_funcs, info
 from src.middleware.request_id import RequestIDMiddleware
 from src.middleware.error_handler import http_exception_handler, general_exception_handler
 
@@ -63,6 +64,14 @@ app.include_router(health.router, tags=["Health"])
 app.include_router(calculate.router, prefix="/api/v1/math", tags=["Calculate"])
 app.include_router(statistics.router, prefix="/api/v1/math", tags=["Statistics"])
 app.include_router(matrix.router, prefix="/api/v1/math", tags=["Matrix"])
+app.include_router(excel.router, prefix="/api/v1/math", tags=["Excel"])
+app.include_router(finance.router, prefix="/api/v1/math", tags=["Finance"])
+app.include_router(text.router, prefix="/api/v1/math", tags=["Text"])
+app.include_router(logical.router, prefix="/api/v1/math", tags=["Logical"])
+app.include_router(datetime.router, prefix="/api/v1/math", tags=["DateTime"])
+app.include_router(array.router, prefix="/api/v1/math", tags=["Array"])
+app.include_router(math_funcs.router, prefix="/api/v1/math", tags=["Math"])
+app.include_router(info.router, prefix="/api/v1/math", tags=["Information"])
 
 
 @app.get("/")
