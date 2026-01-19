@@ -47,9 +47,7 @@ services:
   # FlowForge Backend API
   # ==========================================================================
   flowforge-api:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: flowforge:latest
     container_name: flowforge-api
     environment:
       NODE_ENV: development
