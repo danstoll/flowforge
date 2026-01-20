@@ -195,3 +195,68 @@ export interface RegistryPlugin {
   publishedAt: Date;
   updatedAt: Date;
 }
+
+// Registry Source (marketplace source like Portainer app templates)
+export interface RegistrySource {
+  id: string;
+  name: string;
+  description?: string;
+  url: string;
+  sourceType: 'github' | 'url' | 'local';
+  githubOwner?: string;
+  githubRepo?: string;
+  githubBranch?: string;
+  githubPath?: string;
+  enabled: boolean;
+  isOfficial: boolean;
+  cachedIndex?: RegistryIndex;
+  lastFetched?: Date;
+  fetchError?: string;
+  priority: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// Registry Index (what's fetched from sources)
+export interface RegistryIndex {
+  version: string;
+  lastUpdated?: string;
+  registry?: {
+    name: string;
+    description?: string;
+    url?: string;
+    maintainer?: string;
+  };
+  plugins: RegistryPluginEntry[];
+}
+
+export interface RegistryPluginEntry {
+  id: string;
+  verified?: boolean;
+  featured?: boolean;
+  downloads?: number;
+  rating?: number;
+  publishedAt?: string;
+  updatedAt?: string;
+  manifest: ForgeHookManifest;
+}
+
+// GitHub Install Request
+export interface GitHubInstallRequest {
+  repository: string; // e.g., "flowforge/math-service" or "https://github.com/flowforge/math-service"
+  ref?: string; // branch, tag, or commit (default: main)
+  manifestPath?: string; // path to forgehook.json (default: forgehook.json)
+  config?: Record<string, unknown>;
+  environment?: Record<string, string>;
+  autoStart?: boolean;
+}
+
+// Package (.fhk) Types
+export interface ForgeHookPackage {
+  manifest: ForgeHookManifest;
+  imageData?: Buffer; // Docker image tar
+  imageName: string;
+  checksum: string;
+  createdAt: Date;
+  createdBy?: string;
+}

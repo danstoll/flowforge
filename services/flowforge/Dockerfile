@@ -9,6 +9,10 @@
 FROM node:20-alpine AS frontend-builder
 WORKDIR /app
 
+# Build argument for API host (for Vite build)
+ARG VITE_API_HOST=localhost
+ENV VITE_API_HOST=${VITE_API_HOST}
+
 # Copy package files
 COPY package*.json ./
 

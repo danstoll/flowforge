@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Book, Code2, Rocket, History, ExternalLink } from 'lucide-react';
 
 // Use environment variable for API host, fallback to localhost
-const API_HOST = import.meta.env.VITE_API_HOST || 'localhost';
+const API_HOST = (import.meta as unknown as { env: Record<string, string> }).env.VITE_API_HOST || 'localhost';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';

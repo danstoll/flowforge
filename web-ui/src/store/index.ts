@@ -321,7 +321,7 @@ interface SettingsState {
 }
 
 // Use environment variable for API host, fallback to localhost
-const API_HOST = import.meta.env.VITE_API_HOST || 'localhost';
+const API_HOST = (import.meta as unknown as { env: Record<string, string> }).env.VITE_API_HOST || 'localhost';
 
 export const useSettingsStore = create<SettingsState>()(
   persist(

@@ -96,10 +96,13 @@ function PluginRow({ plugin }: { plugin: InstalledPlugin }) {
   const isActioning = startMutation.isPending || stopMutation.isPending || 
     restartMutation.isPending || uninstallMutation.isPending;
   
+  const categoryInfo = plugin.manifest?.category ? CATEGORY_INFO[plugin.manifest.category] : null;
+  const pluginName = plugin.manifest?.name || plugin.name || plugin.forgehookId;
+  
   const handleStart = async () => {
     try {
       await startMutation.mutateAsync(plugin.id);
-      toast({ title: 'Plugin started', description: `${plugin.manifest.name} is now running.` });
+      toast({ title: 'Plugin started', description: `${pluginName} is now running.` });
     } catch (error) {
       toast({ 
         title: 'Failed to start', 
@@ -112,7 +115,7 @@ function PluginRow({ plugin }: { plugin: InstalledPlugin }) {
   const handleStop = async () => {
     try {
       await stopMutation.mutateAsync(plugin.id);
-      toast({ title: 'Plugin stopped', description: `${plugin.manifest.name} has been stopped.` });
+      toast({ title: 'Plugin stopped', description: `${pluginName} has been stopped.` });
     } catch (error) {
       toast({ 
         title: 'Failed to stop', 
@@ -125,7 +128,7 @@ function PluginRow({ plugin }: { plugin: InstalledPlugin }) {
   const handleRestart = async () => {
     try {
       await restartMutation.mutateAsync(plugin.id);
-      toast({ title: 'Plugin restarted', description: `${plugin.manifest.name} has been restarted.` });
+      toast({ title: 'Plugin restarted', description: `${pluginName} has been restarted.` });
     } catch (error) {
       toast({ 
         title: 'Failed to restart', 
@@ -138,7 +141,7 @@ function PluginRow({ plugin }: { plugin: InstalledPlugin }) {
   const handleUninstall = async () => {
     try {
       await uninstallMutation.mutateAsync(plugin.id);
-      toast({ title: 'Plugin uninstalled', description: `${plugin.manifest.name} has been removed.` });
+      toast({ title: 'Plugin uninstalled', description: `${pluginName} has been removed.` });
       setShowUninstall(false);
     } catch (error) {
       toast({ 
@@ -148,8 +151,6 @@ function PluginRow({ plugin }: { plugin: InstalledPlugin }) {
       });
     }
   };
-  
-  const categoryInfo = plugin.manifest.category ? CATEGORY_INFO[plugin.manifest.category] : null;
   
   return (
     <>
@@ -167,11 +168,11 @@ function PluginRow({ plugin }: { plugin: InstalledPlugin }) {
               
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <h3 className="font-semibold truncate">{plugin.manifest.name}</h3>
-                  <span className="text-xs text-muted-foreground">v{plugin.manifest.version}</span>
+                  <h3 className="font-semibold truncate">{pluginName}</h3>
+                  <span className="text-xs text-muted-foreground">v{plugin.manifest?.version || plugin.version || '1.0.0'}</span>
                 </div>
                 <p className="text-sm text-muted-foreground truncate">
-                  {plugin.manifest.description}
+                  {plugin.manifest?.description || plugin.description || 'No description'}
                 </p>
               </div>
             </div>
@@ -309,7 +310,7 @@ function PluginRow({ plugin }: { plugin: InstalledPlugin }) {
       <Dialog open={showLogs} onOpenChange={setShowLogs}>
         <DialogContent className="max-w-3xl max-h-[80vh]">
           <DialogHeader>
-            <DialogTitle>Logs: {plugin.manifest.name}</DialogTitle>
+            <DialogTitle>Logs: {pluginName}</DialogTitle>
             <DialogDescription>
               Container: {plugin.containerId?.substring(0, 12) || 'N/A'}
             </DialogDescription>
@@ -332,7 +333,7 @@ function PluginRow({ plugin }: { plugin: InstalledPlugin }) {
       <Dialog open={showUninstall} onOpenChange={setShowUninstall}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Uninstall {plugin.manifest.name}?</DialogTitle>
+            <DialogTitle>Uninstall {pluginName}?</DialogTitle>
             <DialogDescription>
               This will stop and remove the plugin container. This action cannot be undone.
             </DialogDescription>
@@ -363,9 +364,11 @@ export default function InstalledPlugins() {
   
   // Filter plugins
   const filteredPlugins = data?.plugins.filter(plugin => {
+    const pluginName = plugin.manifest?.name || plugin.name || plugin.forgehookId || '';
+    const pluginDesc = plugin.manifest?.description || plugin.description || '';
     const matchesSearch = search === '' ||
-      plugin.manifest.name.toLowerCase().includes(search.toLowerCase()) ||
-      plugin.manifest.description.toLowerCase().includes(search.toLowerCase());
+      pluginName.toLowerCase().includes(search.toLowerCase()) ||
+      pluginDesc.toLowerCase().includes(search.toLowerCase());
     
     const matchesStatus = statusFilter === 'all' || plugin.status === statusFilter;
     

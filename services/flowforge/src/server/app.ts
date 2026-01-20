@@ -2,6 +2,7 @@ import Fastify, { FastifyInstance } from 'fastify';
 import cors from '@fastify/cors';
 import fastifyStatic from '@fastify/static';
 import websocket from '@fastify/websocket';
+import multipart from '@fastify/multipart';
 import path from 'path';
 import fs from 'fs';
 import { config } from './config/index.js';
@@ -9,7 +10,11 @@ import { logger } from './utils/logger.js';
 import { healthRoutes } from './routes/health.js';
 import { pluginRoutes } from './routes/plugins.js';
 import { registryRoutes } from './routes/registry.js';
+import { marketplaceRoutes } from './routes/marketplace.js';
+import { packageRoutes } from './routes/packages.js';
+import { changelogRoutes } from './routes/changelog.js';
 import { dockerService } from './services/docker.service.js';
+import { marketplaceService } from './services/marketplace.service.js';
 
 export async function buildApp(): Promise<FastifyInstance> {
   const app = Fastify({
@@ -25,6 +30,13 @@ export async function buildApp(): Promise<FastifyInstance> {
   });
 
   await app.register(websocket);
+
+  // Enable multipart for file uploads (.fhk packages)
+  await app.register(multipart, {
+    limits: {
+      fileSize: 2 * 1024 * 1024 * 1024, // 2GB max for Docker images
+    },
+  });
 
   // Serve static frontend files in production
   const staticPath = path.resolve(config.staticPath);
@@ -84,18 +96,19 @@ export async function buildApp(): Promise<FastifyInstance> {
 
   // Error handler
   app.setErrorHandler((error, request, reply) => {
+    const err = error as Error & { statusCode?: number };
     logger.error({
       requestId: request.id,
-      error: error.message,
-      stack: error.stack,
+      error: err.message,
+      stack: err.stack,
     }, 'Request error');
 
-    reply.status(error.statusCode || 500).send({
+    reply.status(err.statusCode || 500).send({
       error: {
         code: 'INTERNAL_ERROR',
         message: config.environment === 'production'
           ? 'Internal server error'
-          : error.message,
+          : err.message,
         requestId: request.id,
       },
     });
@@ -105,6 +118,12 @@ export async function buildApp(): Promise<FastifyInstance> {
   await app.register(healthRoutes);
   await app.register(pluginRoutes);
   await app.register(registryRoutes);
+  await app.register(marketplaceRoutes);
+  await app.register(packageRoutes);
+  await app.register(changelogRoutes);
+
+  // Initialize marketplace service
+  await marketplaceService.initialize();
 
   // WebSocket for real-time events
   app.register(async function (fastify) {

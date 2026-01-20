@@ -32,7 +32,7 @@ const quickActions = [
 ];
 
 // Use environment variable for API host, fallback to localhost for development
-const API_HOST = import.meta.env.VITE_API_HOST || 'localhost';
+const API_HOST = (import.meta as unknown as { env: Record<string, string> }).env.VITE_API_HOST || 'localhost';
 
 async function checkHealth(port: number) {
   try {

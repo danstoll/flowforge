@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Book, Code2, Rocket, History, ExternalLink } from 'lucide-react';
+import { changelog, changeTypeColors } from '@data/changelog';
 
 // Use current hostname for API calls (unified app)
 const API_HOST = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
@@ -163,40 +164,6 @@ curl -X POST http://localhost:8000/api/v1/pdf/generate \\
     language: 'bash' as const,
   },
 ];
-
-const changelog = [
-  {
-    version: '1.0.0',
-    date: '2026-01-15',
-    changes: [
-      { type: 'feature', description: 'Initial release of FlowForge platform' },
-      { type: 'feature', description: 'Crypto Service: Hashing, encryption, JWT operations' },
-      { type: 'feature', description: 'Math Service: Calculations, statistics, conversions' },
-      { type: 'feature', description: 'PDF Service: Generation, merge, split, text extraction' },
-      { type: 'feature', description: 'OCR Service: Text extraction from images' },
-      { type: 'feature', description: 'Image Service: Resize, convert, optimize' },
-      { type: 'feature', description: 'LLM Service: AI chat and text generation' },
-      { type: 'feature', description: 'Vector Service: Similarity search with Qdrant' },
-      { type: 'feature', description: 'Data Transform: JSON, CSV, XML conversions' },
-    ],
-  },
-  {
-    version: '0.9.0',
-    date: '2026-01-01',
-    changes: [
-      { type: 'feature', description: 'Beta release with core services' },
-      { type: 'improvement', description: 'Performance optimizations for crypto operations' },
-      { type: 'fix', description: 'Fixed memory leak in PDF service' },
-    ],
-  },
-];
-
-const changeTypeColors: Record<string, string> = {
-  feature: 'bg-green-500/10 text-green-600 dark:text-green-400',
-  improvement: 'bg-blue-500/10 text-blue-600 dark:text-blue-400',
-  fix: 'bg-yellow-500/10 text-yellow-600 dark:text-yellow-400',
-  breaking: 'bg-red-500/10 text-red-600 dark:text-red-400',
-};
 
 export default function Documentation() {
   const [selectedService, setSelectedService] = useState<string | null>(null);

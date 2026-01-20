@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
 import { RegistryPlugin, ForgeHookCategory } from '@/types/forgehook';
 
-const PLUGIN_MANAGER_URL = import.meta.env.VITE_PLUGIN_MANAGER_URL || 'http://localhost:4000';
+const PLUGIN_MANAGER_URL = (import.meta as unknown as { env: Record<string, string> }).env.VITE_PLUGIN_MANAGER_URL || 'http://localhost:4000';
 
 // ============================================================================
 // API Functions

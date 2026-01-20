@@ -1,7 +1,7 @@
 import { Pool, PoolClient, QueryResult } from 'pg';
 import { config } from '../config/index.js';
 import { logger } from '../utils/logger.js';
-import { PluginInstance, PluginStatus, PluginEvent } from '../types/index.js';
+import { PluginInstance, PluginStatus, PluginEvent, RegistrySource } from '../types/index.js';
 import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -92,12 +92,18 @@ export class DatabaseService {
     try {
       logger.info('Running database migrations');
 
-      // Read migration file
-      const migrationPath = path.join(__dirname, '../../migrations/001_create_plugins_table.sql');
-      const migrationSQL = await fs.readFile(migrationPath, 'utf-8');
+      // Get migration files
+      const migrationsDir = path.join(__dirname, '../../migrations');
+      const files = await fs.readdir(migrationsDir);
+      const sqlFiles = files.filter(f => f.endsWith('.sql')).sort();
 
-      // Execute migration
-      await client.query(migrationSQL);
+      // Execute each migration in order
+      for (const file of sqlFiles) {
+        const migrationPath = path.join(migrationsDir, file);
+        const migrationSQL = await fs.readFile(migrationPath, 'utf-8');
+        logger.info({ migration: file }, 'Running migration');
+        await client.query(migrationSQL);
+      }
 
       this.initialized = true;
       logger.info('Database migrations completed successfully');
@@ -446,6 +452,197 @@ export class DatabaseService {
    */
   async getClient(): Promise<PoolClient> {
     return this.pool.connect();
+  }
+
+  // ==========================================================================
+  // Registry Sources
+  // ==========================================================================
+
+  /**
+   * List all registry sources
+   */
+  async listRegistrySources(enabledOnly: boolean = false): Promise<RegistrySource[]> {
+    let query = 'SELECT * FROM registry_sources';
+    if (enabledOnly) {
+      query += ' WHERE enabled = true';
+    }
+    query += ' ORDER BY priority ASC, created_at ASC';
+
+    try {
+      const result = await this.pool.query(query);
+      return result.rows.map((row) => this.rowToRegistrySource(row));
+    } catch (error) {
+      logger.error({ error }, 'Failed to list registry sources');
+      return [];
+    }
+  }
+
+  /**
+   * Get registry source by ID
+   */
+  async getRegistrySource(sourceId: string): Promise<RegistrySource | null> {
+    const query = 'SELECT * FROM registry_sources WHERE id = $1';
+
+    try {
+      const result = await this.pool.query(query, [sourceId]);
+      if (result.rows.length === 0) {
+        return null;
+      }
+      return this.rowToRegistrySource(result.rows[0]);
+    } catch (error) {
+      logger.error({ error, sourceId }, 'Failed to get registry source');
+      throw error;
+    }
+  }
+
+  /**
+   * Create registry source
+   */
+  async createRegistrySource(source: Omit<RegistrySource, 'id' | 'createdAt' | 'updatedAt'>): Promise<RegistrySource> {
+    const query = `
+      INSERT INTO registry_sources (
+        name, description, url, source_type, github_owner, github_repo,
+        github_branch, github_path, enabled, is_official, priority
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+      RETURNING *
+    `;
+
+    const values = [
+      source.name,
+      source.description || null,
+      source.url,
+      source.sourceType,
+      source.githubOwner || null,
+      source.githubRepo || null,
+      source.githubBranch || 'main',
+      source.githubPath || 'registry.json',
+      source.enabled ?? true,
+      source.isOfficial ?? false,
+      source.priority ?? 100,
+    ];
+
+    try {
+      const result = await this.pool.query(query, values);
+      logger.info({ sourceName: source.name }, 'Registry source created');
+      return this.rowToRegistrySource(result.rows[0]);
+    } catch (error) {
+      logger.error({ error, source }, 'Failed to create registry source');
+      throw error;
+    }
+  }
+
+  /**
+   * Update registry source
+   */
+  async updateRegistrySource(
+    sourceId: string,
+    updates: Partial<RegistrySource>
+  ): Promise<RegistrySource | null> {
+    const fields: string[] = [];
+    const values: unknown[] = [];
+    let paramIndex = 1;
+
+    if (updates.name !== undefined) {
+      fields.push(`name = $${paramIndex++}`);
+      values.push(updates.name);
+    }
+    if (updates.description !== undefined) {
+      fields.push(`description = $${paramIndex++}`);
+      values.push(updates.description);
+    }
+    if (updates.url !== undefined) {
+      fields.push(`url = $${paramIndex++}`);
+      values.push(updates.url);
+    }
+    if (updates.enabled !== undefined) {
+      fields.push(`enabled = $${paramIndex++}`);
+      values.push(updates.enabled);
+    }
+    if (updates.priority !== undefined) {
+      fields.push(`priority = $${paramIndex++}`);
+      values.push(updates.priority);
+    }
+    if (updates.cachedIndex !== undefined) {
+      fields.push(`cached_index = $${paramIndex++}`);
+      values.push(JSON.stringify(updates.cachedIndex));
+    }
+    if (updates.lastFetched !== undefined) {
+      fields.push(`last_fetched = $${paramIndex++}`);
+      values.push(updates.lastFetched);
+    }
+    if (updates.fetchError !== undefined) {
+      fields.push(`fetch_error = $${paramIndex++}`);
+      values.push(updates.fetchError);
+    }
+
+    if (fields.length === 0) {
+      return this.getRegistrySource(sourceId);
+    }
+
+    values.push(sourceId);
+    const query = `
+      UPDATE registry_sources
+      SET ${fields.join(', ')}, updated_at = NOW()
+      WHERE id = $${paramIndex}
+      RETURNING *
+    `;
+
+    try {
+      const result = await this.pool.query(query, values);
+      if (result.rows.length === 0) {
+        return null;
+      }
+      return this.rowToRegistrySource(result.rows[0]);
+    } catch (error) {
+      logger.error({ error, sourceId }, 'Failed to update registry source');
+      throw error;
+    }
+  }
+
+  /**
+   * Delete registry source
+   */
+  async deleteRegistrySource(sourceId: string): Promise<boolean> {
+    // Don't allow deleting official sources
+    const source = await this.getRegistrySource(sourceId);
+    if (source?.isOfficial) {
+      throw new Error('Cannot delete official registry source');
+    }
+
+    const query = 'DELETE FROM registry_sources WHERE id = $1';
+
+    try {
+      const result = await this.pool.query(query, [sourceId]);
+      return (result.rowCount ?? 0) > 0;
+    } catch (error) {
+      logger.error({ error, sourceId }, 'Failed to delete registry source');
+      throw error;
+    }
+  }
+
+  /**
+   * Convert database row to RegistrySource
+   */
+  private rowToRegistrySource(row: any): RegistrySource {
+    return {
+      id: row.id,
+      name: row.name,
+      description: row.description,
+      url: row.url,
+      sourceType: row.source_type,
+      githubOwner: row.github_owner,
+      githubRepo: row.github_repo,
+      githubBranch: row.github_branch,
+      githubPath: row.github_path,
+      enabled: row.enabled,
+      isOfficial: row.is_official,
+      cachedIndex: row.cached_index,
+      lastFetched: row.last_fetched ? new Date(row.last_fetched) : undefined,
+      fetchError: row.fetch_error,
+      priority: row.priority,
+      createdAt: new Date(row.created_at),
+      updatedAt: new Date(row.updated_at),
+    };
   }
 }
 

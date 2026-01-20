@@ -159,3 +159,6 @@ site/
 # yarn.lock
 # pnpm-lock.yaml
 # poetry.lock
+
+# Separate repository - forgehooks-registry
+forgehooks-registry/

@@ -15,13 +15,13 @@ import { cn } from '../lib/utils';
 
 const services = [
   { id: 'crypto', name: 'Crypto Service', port: 4001, icon: Lock, description: 'Hashing, encryption, JWT' },
-  { id: 'math', name: 'Math Service', port: 4002, icon: Calculator, description: 'Calculations, statistics' },
-  { id: 'pdf', name: 'PDF Service', port: 4003, icon: FileText, description: 'PDF manipulation' },
-  { id: 'ocr', name: 'OCR Service', port: 4004, icon: Activity, description: 'Text extraction' },
-  { id: 'image', name: 'Image Service', port: 4005, icon: ImageIcon, description: 'Image processing' },
-  { id: 'llm', name: 'LLM Service', port: 4006, icon: Brain, description: 'AI completions' },
-  { id: 'vector', name: 'Vector Service', port: 4007, icon: Database, description: 'Vector search' },
-  { id: 'data', name: 'Data Transform', port: 4008, icon: Cpu, description: 'Data conversion' },
+  { id: 'math', name: 'Math Service', port: 5001, icon: Calculator, description: 'Calculations, statistics' },
+  { id: 'llm', name: 'LLM Service', port: 4002, icon: Brain, description: 'AI completions' },
+  { id: 'vector', name: 'Vector Service', port: 4003, icon: Database, description: 'Vector search' },
+  { id: 'pdf', name: 'PDF Service', port: 4004, icon: FileText, description: 'PDF manipulation' },
+  { id: 'ocr', name: 'OCR Service', port: 4005, icon: Activity, description: 'Text extraction' },
+  { id: 'image', name: 'Image Service', port: 4006, icon: ImageIcon, description: 'Image processing' },
+  { id: 'data', name: 'Data Transform', port: 4007, icon: Cpu, description: 'Data conversion' },
 ];
 
 const quickActions = [
@@ -31,12 +31,24 @@ const quickActions = [
   { label: 'AI Chat', service: 'llm', endpoint: '/chat', icon: Brain },
 ];
 
-// Use current hostname for API calls (unified app serves both frontend and API)
-const API_HOST = window.location.hostname;
+// Use VITE_API_URL if set (for local dev pointing to remote Docker), otherwise current hostname
+const getServiceHost = () => {
+  const apiUrl = import.meta.env.VITE_API_URL;
+  if (apiUrl) {
+    try {
+      return new URL(apiUrl).hostname;
+    } catch {
+      // Fall through to default
+    }
+  }
+  return window.location.hostname;
+};
+
+const SERVICES_HOST = getServiceHost();
 
 async function checkHealth(port: number) {
   try {
-    const response = await fetch(`http://${API_HOST}:${port}/health`, { 
+    const response = await fetch(`http://${SERVICES_HOST}:${port}/health`, { 
       signal: AbortSignal.timeout(3000) 
     });
     if (!response.ok) throw new Error('Not healthy');

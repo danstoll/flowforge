@@ -21,7 +21,7 @@ export default function Layout() {
   const { isAuthenticated } = useAuthStore();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  const NavContent = () => (
+  const navContent = (
     <>
       <nav className="flex-1 p-4 space-y-1">
         {navItems.map((item) => {
@@ -109,7 +109,7 @@ export default function Layout() {
             <span>Flow<span className="text-primary">Forge</span></span>
           </Link>
         </div>
-        <NavContent />
+        {navContent}
       </aside>
 
       {/* Desktop Sidebar */}
@@ -120,7 +120,7 @@ export default function Layout() {
             <span>Flow<span className="text-primary">Forge</span></span>
           </Link>
         </div>
-        <NavContent />
+        {navContent}
       </aside>
 
       {/* Main content */}

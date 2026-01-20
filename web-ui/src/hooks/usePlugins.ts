@@ -8,7 +8,7 @@ import {
 } from '../types/forgehook';
 
 // Use environment variable for API host
-const API_HOST = import.meta.env.VITE_API_HOST || 'localhost';
+const API_HOST = (import.meta as unknown as { env: Record<string, string> }).env.VITE_API_HOST || 'localhost';
 const PLUGIN_MANAGER_URL = `http://${API_HOST}:4000`;
 
 // =============================================================================
