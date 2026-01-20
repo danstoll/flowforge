@@ -40,6 +40,8 @@ CREATE INDEX IF NOT EXISTS idx_plugins_manifest_runtime ON plugins((manifest->>'
 -- ============================================================================
 -- Update helper function to include new columns
 -- ============================================================================
+DROP FUNCTION IF EXISTS get_plugin_by_forgehook_id(VARCHAR);
+
 CREATE OR REPLACE FUNCTION get_plugin_by_forgehook_id(p_forgehook_id VARCHAR)
 RETURNS TABLE (
   id UUID,
