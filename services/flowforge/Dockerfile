@@ -26,8 +26,6 @@ COPY index.html ./
 COPY vite.config.ts ./
 COPY tsconfig.client.json ./
 COPY tsconfig.node.json ./
-COPY tailwind.config.js ./
-COPY postcss.config.js ./
 
 # Build frontend
 RUN npm run build:client
