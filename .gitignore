@@ -162,3 +162,7 @@ site/
 
 # Separate repository - forgehooks-registry
 forgehooks-registry/
+
+# Archived (obsolete) code
+_archive/
+web-ui/
