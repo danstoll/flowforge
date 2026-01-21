@@ -3,7 +3,6 @@ import {
   InstalledPlugin, 
   PluginListResponse, 
   ForgeHookManifest,
-  BUILTIN_FORGEHOOKS,
   RegistryPlugin,
 } from '../types/forgehook';
 
@@ -298,7 +297,7 @@ export function usePluginUpdateHistory(pluginId: string | undefined, enabled: bo
 }
 
 // =============================================================================
-// Registry (Fetched from plugin-manager registry API)
+// Registry (Fetched from registry API)
 // =============================================================================
 
 export function useAvailablePlugins() {
@@ -307,9 +306,8 @@ export function useAvailablePlugins() {
     queryFn: async (): Promise<RegistryPlugin[]> => {
       const response = await fetch(`${API_BASE}/registry/plugins`);
       if (!response.ok) {
-        // Fallback to built-in plugins if registry API fails
-        console.warn('Failed to fetch registry, falling back to built-in plugins');
-        return BUILTIN_FORGEHOOKS;
+        console.warn('Failed to fetch registry');
+        return [];
       }
       const data = await response.json();
       return data.plugins;

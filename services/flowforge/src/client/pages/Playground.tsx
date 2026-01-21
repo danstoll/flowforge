@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Play, ChevronDown, Save, Trash2, FolderOpen, Terminal, Code2 } from 'lucide-react';
+import { Play, ChevronDown, Save, Trash2, FolderOpen, Terminal, Code2, Loader2, Plug } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,17 +12,48 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { ResponseViewer } from '@/components/ResponseViewer';
 import { CodeBlock } from '@/components/CodeBlock';
 import { 
-  services, 
   executeApiCall, 
   generateCurlCommand, 
   generateJavaScriptCode, 
   generatePythonCode,
-  type ServiceInfo,
-  type EndpointInfo 
 } from '@/lib/api';
+import { useInstalledPlugins } from '@/hooks/usePlugins';
+import type { InstalledPlugin } from '@/types/forgehook';
 import { useSavedRequestsStore, useSettingsStore, type SavedRequest } from '@/store';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+
+// Convert InstalledPlugin to a service-like structure for the playground
+interface PlaygroundService {
+  id: string;
+  name: string;
+  path: string;
+  endpoints: PlaygroundEndpoint[];
+}
+
+interface PlaygroundEndpoint {
+  method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
+  path: string;
+  description: string;
+  body?: Record<string, unknown>;
+}
+
+function pluginToService(plugin: InstalledPlugin): PlaygroundService {
+  const basePath = plugin.manifest?.basePath || `/api/v1/${plugin.forgehookId}`;
+  const endpoints: PlaygroundEndpoint[] = (plugin.manifest?.endpoints || []).map(ep => ({
+    method: ep.method,
+    path: ep.path,
+    description: ep.description,
+    body: ep.requestBody,
+  }));
+  
+  return {
+    id: plugin.forgehookId,
+    name: plugin.name,
+    path: basePath,
+    endpoints,
+  };
+}
 
 const methodColors: Record<string, string> = {
   GET: 'bg-green-500',
@@ -37,10 +68,21 @@ export default function Playground() {
   const { toast } = useToast();
   const { baseUrl, setBaseUrl } = useSettingsStore();
   const { requests: savedRequests, addRequest, deleteRequest } = useSavedRequestsStore();
+  
+  // Fetch installed plugins
+  const { data: pluginsData, isLoading: pluginsLoading } = useInstalledPlugins();
+  
+  // Convert running plugins to services
+  const services = useMemo(() => {
+    if (!pluginsData?.plugins) return [];
+    return pluginsData.plugins
+      .filter(p => p.status === 'running')
+      .map(pluginToService);
+  }, [pluginsData]);
 
   // State
-  const [selectedService, setSelectedService] = useState<ServiceInfo>(services[0]);
-  const [selectedEndpoint, setSelectedEndpoint] = useState<EndpointInfo>(services[0].endpoints[0]);
+  const [selectedService, setSelectedService] = useState<PlaygroundService | null>(null);
+  const [selectedEndpoint, setSelectedEndpoint] = useState<PlaygroundEndpoint | null>(null);
   const [method, setMethod] = useState<string>('POST');
   const [path, setPath] = useState<string>('');
   const [requestBody, setRequestBody] = useState<string>('');
@@ -48,31 +90,34 @@ export default function Playground() {
   const [response, setResponse] = useState<{ status: number; statusText: string; data: unknown; duration: number; headers: Record<string, string> } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [expandedCategories, setExpandedCategories] = useState<string[]>([services[0].name]);
+  const [expandedCategories, setExpandedCategories] = useState<string[]>([]);
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [requestName, setRequestName] = useState('');
   const [activeCodeTab, setActiveCodeTab] = useState<'curl' | 'javascript' | 'python'>('curl');
 
-  // Initialize from URL params
+  // Set initial service when services load
   useEffect(() => {
-    const serviceId = searchParams.get('service');
-    if (serviceId) {
-      const service = services.find((s) => s.id === serviceId);
-      if (service) {
-        setSelectedService(service);
+    if (services.length > 0 && !selectedService) {
+      const serviceId = searchParams.get('service');
+      const service = serviceId 
+        ? services.find(s => s.id === serviceId) || services[0]
+        : services[0];
+      
+      setSelectedService(service);
+      if (service.endpoints.length > 0) {
         setSelectedEndpoint(service.endpoints[0]);
-        if (!expandedCategories.includes(service.name)) {
-          setExpandedCategories([...expandedCategories, service.name]);
-        }
       }
+      setExpandedCategories([service.name]);
     }
-  }, [searchParams]);
+  }, [services, selectedService, searchParams]);
 
   // Update method, path, and body when endpoint changes
   useEffect(() => {
-    setMethod(selectedEndpoint.method);
-    setPath(`${selectedService.path}${selectedEndpoint.path}`);
-    setRequestBody(selectedEndpoint.body ? JSON.stringify(selectedEndpoint.body, null, 2) : '');
+    if (selectedEndpoint && selectedService) {
+      setMethod(selectedEndpoint.method);
+      setPath(`${selectedService.path}${selectedEndpoint.path}`);
+      setRequestBody(selectedEndpoint.body ? JSON.stringify(selectedEndpoint.body, null, 2) : '');
+    }
   }, [selectedEndpoint, selectedService]);
 
   const toggleCategory = (category: string) => {
@@ -81,7 +126,7 @@ export default function Playground() {
     );
   };
 
-  const selectEndpoint = (service: ServiceInfo, endpoint: EndpointInfo) => {
+  const selectEndpoint = (service: PlaygroundService, endpoint: PlaygroundEndpoint) => {
     setSelectedService(service);
     setSelectedEndpoint(endpoint);
     setResponse(null);
@@ -145,6 +190,37 @@ export default function Playground() {
         return generatePythonCode(method, path, body);
     }
   };
+
+  // Loading state
+  if (pluginsLoading) {
+    return (
+      <div className="h-full flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  // No services available
+  if (services.length === 0) {
+    return (
+      <div className="h-full flex flex-col">
+        <div className="mb-6">
+          <h1 className="text-3xl font-bold">API Playground</h1>
+          <p className="text-muted-foreground mt-1">Test FlowForge API endpoints interactively</p>
+        </div>
+        <Card className="p-8 text-center flex-1 flex flex-col items-center justify-center">
+          <Plug className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+          <h3 className="text-lg font-medium mb-2">No Services Running</h3>
+          <p className="text-muted-foreground mb-4">
+            Install and start plugins from the Marketplace to use the API Playground.
+          </p>
+          <Button asChild>
+            <a href="#/marketplace">Browse Marketplace</a>
+          </Button>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="h-full flex flex-col">

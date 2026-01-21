@@ -47,16 +47,22 @@ export async function pluginRoutes(fastify: FastifyInstance) {
   fastify.get('/api/v1/plugins', async (request: FastifyRequest, reply: FastifyReply) => {
     const plugins = dockerService.listPlugins();
 
-    const response = plugins.map((plugin): PluginResponse => ({
+    // Return full manifest for dynamic UI rendering (Services, Playground, Documentation)
+    const response = plugins.map((plugin) => ({
       id: plugin.id,
       forgehookId: plugin.forgehookId,
       name: plugin.manifest.name,
       version: plugin.manifest.version,
+      description: plugin.manifest.description,
       status: plugin.status,
+      runtime: plugin.runtime || 'container',
       hostPort: plugin.hostPort ?? 0,
+      assignedPort: plugin.assignedPort,
       healthStatus: plugin.healthStatus,
       error: plugin.error,
-      endpoints: plugin.manifest.endpoints,
+      manifest: plugin.manifest, // Full manifest for Services/Playground pages
+      installedAt: plugin.installedAt,
+      startedAt: plugin.startedAt,
     }));
 
     return reply.send({
