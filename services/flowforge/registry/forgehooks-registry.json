@@ -175,7 +175,7 @@
           "tag": "latest"
         },
         "port": 3001,
-        "basePath": "/api/v1/crypto",
+        "basePath": "/api/v1",
         "endpoints": [
           {
             "method": "POST",

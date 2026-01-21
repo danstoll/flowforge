@@ -286,10 +286,18 @@ export async function nintexRoutes(fastify: FastifyInstance) {
         const containerName = `forgehook-${pluginId}`;
         const internalPort = plugin.manifest.port || 3000;
         
-        // Note: For container plugins, routes are typically at /api/v1/{route} directly
-        // The basePath in manifest may be incorrect/unused, so we use /api/v1 as the base
-        // and append the endpoint path directly
-        const basePath = '/api/v1';
+        // Determine basePath - there's a known mismatch for crypto-service:
+        // - crypto-service: manifest says /api/v1/crypto but routes are at /api/v1/*
+        // - math-service: manifest says /api/v1/math and routes are at /api/v1/math/* (correct)
+        // For crypto-service specifically, we override the basePath to match actual routes
+        const manifestBasePath = (plugin.manifest as unknown as Record<string, unknown>).basePath as string | undefined;
+        let basePath = manifestBasePath ?? '/api/v1';
+        
+        // Known fixes for basePath mismatches in registry manifests
+        if (pluginId === 'crypto-service' && basePath === '/api/v1/crypto') {
+          basePath = '/api/v1';
+        }
+        
         const pluginUrl = `http://${containerName}:${internalPort}${basePath}${endpoint}`;
         
         logger.info({ pluginId, actionId, pluginUrl, method }, 'Executing plugin action via Nintex gateway');
