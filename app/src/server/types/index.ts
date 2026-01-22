@@ -267,6 +267,7 @@ export interface RegistryPluginEntry {
   publishedAt?: string;
   updatedAt?: string;
   manifest: ForgeHookManifest;
+  bundleUrl?: string; // For embedded plugins - URL to the bundled JS code
 }
 
 // GitHub Install Request
