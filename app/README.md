@@ -129,7 +129,7 @@ docker compose -f docker-compose.unified.yml up -d
 ## Project Structure
 
 ```text
-services/flowforge/
+app/
 ├── src/
 │   ├── client/           # React frontend
 │   │   ├── components/   # UI components

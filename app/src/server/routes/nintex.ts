@@ -2,6 +2,7 @@ import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { dockerService } from '../services/docker.service.js';
 import { logger } from '../utils/logger.js';
 import { ForgeHookEndpoint } from '../types/index.js';
+import { requireApiKeyAndIntegration, logApiUsage } from '../middleware/auth.js';
 
 // Request types
 interface PluginParams {
@@ -35,13 +36,24 @@ interface ForgeHookParameter {
   default?: unknown;
 }
 
+// Integration ID for this route module
+const INTEGRATION_ID = 'nintex';
+
 /**
  * Nintex Integration Routes
  * 
  * These endpoints support Nintex Workflow Cloud's x-ntx-dynamic-values 
  * and x-ntx-dynamic-schema specifications for dynamic dropdown and form generation.
+ * 
+ * All endpoints require:
+ * 1. Valid API key (via Authorization header or X-API-Key)
+ * 2. Nintex integration to be enabled in FlowForge settings
  */
 export async function nintexRoutes(fastify: FastifyInstance) {
+  
+  // Add authentication hooks for all routes in this module
+  fastify.addHook('preHandler', requireApiKeyAndIntegration(INTEGRATION_ID));
+  fastify.addHook('onResponse', logApiUsage(INTEGRATION_ID));
   
   // ============================================================================
   // List Plugins for Dynamic Dropdown

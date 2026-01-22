@@ -74,12 +74,12 @@ ssh dan@10.0.0.115 "sudo docker restart flowforge-plugin-manager"
 
 ```bash
 # Copy updated source files to server
-scp -r ./web-ui/src/hooks/*.ts dan@10.0.0.115:~/flowforge/services/flowforge/src/client/hooks/
-scp -r ./web-ui/src/pages/*.tsx dan@10.0.0.115:~/flowforge/services/flowforge/src/client/pages/
-scp -r ./web-ui/src/components/ui/*.tsx dan@10.0.0.115:~/flowforge/services/flowforge/src/client/components/ui/
+scp -r ./app/src/client/hooks/*.ts dan@10.0.0.115:~/flowforge/app/src/client/hooks/
+scp -r ./app/src/client/pages/*.tsx dan@10.0.0.115:~/flowforge/app/src/client/pages/
+scp -r ./app/src/client/components/ui/*.tsx dan@10.0.0.115:~/flowforge/app/src/client/components/ui/
 
 # Rebuild Docker image on server
-ssh dan@10.0.0.115 "cd ~/flowforge/services/flowforge && docker build -t flowforge:latest ."
+ssh dan@10.0.0.115 "cd ~/flowforge/app && docker build -t flowforge:latest ."
 
 # Restart container with new image
 ssh dan@10.0.0.115 "docker stop flowforge-api && docker rm flowforge-api && docker run -d --name flowforge-api --network flowforge-network -p 4000:4000 -e POSTGRES_HOST=flowforge-postgres -e POSTGRES_PASSWORD=flowforge_password -v /var/run/docker.sock:/var/run/docker.sock -v flowforge_plugin_data:/app/data flowforge:latest"

@@ -15,6 +15,8 @@ import { packageRoutes } from './routes/packages.js';
 import { changelogRoutes } from './routes/changelog.js';
 import { pluginInvokeRoutes } from './routes/plugin-invoke.js';
 import { nintexRoutes } from './routes/nintex.js';
+import { apiKeysRoutes } from './routes/api-keys.js';
+import { integrationsRoutes } from './routes/integrations.js';
 import { dockerService } from './services/docker.service.js';
 import { marketplaceService } from './services/marketplace.service.js';
 import { embeddedPluginService } from './services/embedded-plugin.service.js';
@@ -125,6 +127,8 @@ export async function buildApp(): Promise<FastifyInstance> {
   await app.register(packageRoutes);
   await app.register(changelogRoutes);
   await app.register(pluginInvokeRoutes, { prefix: '/api/v1' });
+  await app.register(apiKeysRoutes);
+  await app.register(integrationsRoutes);
   await app.register(nintexRoutes);
 
   // Initialize marketplace service

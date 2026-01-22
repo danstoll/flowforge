@@ -328,3 +328,80 @@ export interface EmbeddedInvocationResult {
   error?: string;
   executionTime: number;
 }
+
+// ==========================================================================
+// API Key Types
+// ==========================================================================
+
+export interface ApiKey {
+  id: string;
+  name: string;
+  description?: string;
+  keyPrefix: string;
+  isActive: boolean;
+  lastUsedAt?: Date;
+  createdAt: Date;
+  updatedAt: Date;
+  revokedAt?: Date;
+}
+
+export interface CreateApiKeyRequest {
+  name: string;
+  description?: string;
+}
+
+export interface CreateApiKeyResponse {
+  apiKey: ApiKey;
+  plainTextKey: string; // Only returned once at creation
+}
+
+export interface ApiKeyUsage {
+  id: string;
+  apiKeyId: string;
+  integrationId?: string;
+  endpoint: string;
+  method: string;
+  statusCode: number;
+  ipAddress?: string;
+  userAgent?: string;
+  createdAt: Date;
+}
+
+// ==========================================================================
+// Integration Types
+// ==========================================================================
+
+export interface Integration {
+  id: string;
+  name: string;
+  description?: string;
+  icon?: string;
+  documentationUrl?: string;
+  isEnabled: boolean;
+  config: Record<string, unknown>;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface UpdateIntegrationRequest {
+  isEnabled?: boolean;
+  config?: Record<string, unknown>;
+}
+
+export interface CreateIntegrationRequest {
+  id: string;
+  name: string;
+  description?: string;
+  icon?: string;
+  documentationUrl?: string;
+  isEnabled?: boolean;
+  config?: Record<string, unknown>;
+}
+
+// Built-in integration IDs
+export type BuiltInIntegrationId = 
+  | 'nintex'
+  | 'make'
+  | 'zapier'
+  | 'n8n'
+  | 'power-automate';

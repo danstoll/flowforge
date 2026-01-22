@@ -29,7 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Duplicate client-side changelog data file
 - Legacy `web-ui` Docker service (replaced by unified app)
-- `services/plugin-manager/` standalone service (merged into `services/flowforge/`)
+- `services/plugin-manager/` standalone service (merged into `app/`)
 
 ### Fixed
 

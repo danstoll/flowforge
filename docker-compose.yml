@@ -352,7 +352,7 @@ services:
 
   flowforge:
     build:
-      context: ./services/flowforge
+      context: ./app
       dockerfile: Dockerfile
     container_name: flowforge-app
     environment:

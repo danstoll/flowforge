@@ -45,10 +45,11 @@ export async function pluginRoutes(fastify: FastifyInstance) {
   // List Plugins
   // ============================================================================
   fastify.get('/api/v1/plugins', async (request: FastifyRequest, reply: FastifyReply) => {
-    const plugins = dockerService.listPlugins();
+    // Get all plugins from database (includes both container and embedded)
+    const allPlugins = await databaseService.listPlugins();
 
     // Return full manifest for dynamic UI rendering (Services, Playground, Documentation)
-    const response = plugins.map((plugin) => ({
+    const response = allPlugins.map((plugin) => ({
       id: plugin.id,
       forgehookId: plugin.forgehookId,
       name: plugin.manifest.name,
@@ -77,7 +78,12 @@ export async function pluginRoutes(fastify: FastifyInstance) {
     '/api/v1/plugins/:pluginId',
     async (request, reply) => {
       const { pluginId } = request.params;
-      const plugin = dockerService.getPlugin(pluginId);
+      
+      // Try Docker service first, then database for embedded plugins
+      let plugin = dockerService.getPlugin(pluginId);
+      if (!plugin) {
+        plugin = await databaseService.getPlugin(pluginId) || undefined;
+      }
 
       if (!plugin) {
         return reply.status(404).send({
@@ -95,6 +101,7 @@ export async function pluginRoutes(fastify: FastifyInstance) {
         version: plugin.manifest.version,
         description: plugin.manifest.description,
         status: plugin.status,
+        runtime: plugin.runtime || 'container',
         hostPort: plugin.hostPort,
         healthStatus: plugin.healthStatus,
         error: plugin.error,
@@ -185,7 +192,12 @@ export async function pluginRoutes(fastify: FastifyInstance) {
     '/api/v1/plugins/:pluginId/start',
     async (request, reply) => {
       const { pluginId } = request.params;
-      const plugin = dockerService.getPlugin(pluginId);
+      
+      // Try Docker service first, then database for embedded plugins
+      let plugin = dockerService.getPlugin(pluginId);
+      if (!plugin) {
+        plugin = await databaseService.getPlugin(pluginId) || undefined;
+      }
 
       if (!plugin) {
         return reply.status(404).send({
@@ -197,7 +209,11 @@ export async function pluginRoutes(fastify: FastifyInstance) {
       }
 
       try {
-        await dockerService.startPlugin(pluginId);
+        if (plugin.runtime === 'embedded') {
+          await embeddedPluginService.startPlugin(pluginId);
+        } else {
+          await dockerService.startPlugin(pluginId);
+        }
 
         return reply.send({
           id: plugin.id,
@@ -224,7 +240,12 @@ export async function pluginRoutes(fastify: FastifyInstance) {
     '/api/v1/plugins/:pluginId/stop',
     async (request, reply) => {
       const { pluginId } = request.params;
-      const plugin = dockerService.getPlugin(pluginId);
+      
+      // Try Docker service first, then database for embedded plugins
+      let plugin = dockerService.getPlugin(pluginId);
+      if (!plugin) {
+        plugin = await databaseService.getPlugin(pluginId) || undefined;
+      }
 
       if (!plugin) {
         return reply.status(404).send({
@@ -236,7 +257,11 @@ export async function pluginRoutes(fastify: FastifyInstance) {
       }
 
       try {
-        await dockerService.stopPlugin(pluginId);
+        if (plugin.runtime === 'embedded') {
+          await embeddedPluginService.stopPlugin(pluginId);
+        } else {
+          await dockerService.stopPlugin(pluginId);
+        }
 
         return reply.send({
           id: plugin.id,
@@ -263,7 +288,12 @@ export async function pluginRoutes(fastify: FastifyInstance) {
     '/api/v1/plugins/:pluginId/restart',
     async (request, reply) => {
       const { pluginId } = request.params;
-      const plugin = dockerService.getPlugin(pluginId);
+      
+      // Try Docker service first, then database for embedded plugins
+      let plugin = dockerService.getPlugin(pluginId);
+      if (!plugin) {
+        plugin = await databaseService.getPlugin(pluginId) || undefined;
+      }
 
       if (!plugin) {
         return reply.status(404).send({
@@ -275,7 +305,12 @@ export async function pluginRoutes(fastify: FastifyInstance) {
       }
 
       try {
-        await dockerService.restartPlugin(pluginId);
+        if (plugin.runtime === 'embedded') {
+          await embeddedPluginService.stopPlugin(pluginId);
+          await embeddedPluginService.startPlugin(pluginId);
+        } else {
+          await dockerService.restartPlugin(pluginId);
+        }
 
         return reply.send({
           id: plugin.id,
@@ -302,7 +337,12 @@ export async function pluginRoutes(fastify: FastifyInstance) {
     '/api/v1/plugins/:pluginId',
     async (request, reply) => {
       const { pluginId } = request.params;
-      const plugin = dockerService.getPlugin(pluginId);
+      
+      // Try Docker service first, then database for embedded plugins
+      let plugin = dockerService.getPlugin(pluginId);
+      if (!plugin) {
+        plugin = await databaseService.getPlugin(pluginId) || undefined;
+      }
 
       if (!plugin) {
         return reply.status(404).send({
@@ -314,7 +354,14 @@ export async function pluginRoutes(fastify: FastifyInstance) {
       }
 
       try {
-        await dockerService.uninstallPlugin(pluginId);
+        if (plugin.runtime === 'embedded') {
+          // Unload from memory
+          await embeddedPluginService.unloadPlugin(plugin.forgehookId);
+          // Delete from database
+          await databaseService.deletePlugin(pluginId);
+        } else {
+          await dockerService.uninstallPlugin(pluginId);
+        }
 
         return reply.send({
           message: 'Plugin uninstalled successfully',
@@ -341,7 +388,16 @@ export async function pluginRoutes(fastify: FastifyInstance) {
       const { pluginId } = request.params;
       const { tail = 100 } = request.query;
 
-      const plugin = dockerService.getPlugin(pluginId);
+      // Try Docker service first (for container plugins)
+      let plugin = dockerService.getPlugin(pluginId);
+      
+      // If not found in Docker service, check database (could be embedded plugin)
+      if (!plugin) {
+        const dbPlugin = await databaseService.getPlugin(pluginId);
+        if (dbPlugin) {
+          plugin = dbPlugin;
+        }
+      }
 
       if (!plugin) {
         return reply.status(404).send({
@@ -353,6 +409,25 @@ export async function pluginRoutes(fastify: FastifyInstance) {
       }
 
       try {
+        // Handle embedded plugins - they don't have Docker logs
+        if (plugin.runtime === 'embedded') {
+          const health = await embeddedPluginService.checkHealth(plugin.forgehookId);
+          return reply.send({
+            pluginId,
+            runtime: 'embedded',
+            logs: [
+              `[${new Date().toISOString()}] Embedded plugin: ${plugin.manifest.name}`,
+              `[${new Date().toISOString()}] Status: ${plugin.status}`,
+              `[${new Date().toISOString()}] Module loaded: ${health.details.loaded}`,
+              `[${new Date().toISOString()}] Exports: ${health.details.exports.join(', ')}`,
+              `[${new Date().toISOString()}] Invocation count: ${health.details.invocationCount}`,
+              health.details.lastInvoked ? `[${new Date().toISOString()}] Last invoked: ${health.details.lastInvoked}` : null,
+              `[${new Date().toISOString()}] Note: Embedded plugins run in-process without Docker containers`,
+            ].filter(Boolean),
+          });
+        }
+
+        // Container plugin - get Docker logs
         const logs = await dockerService.getPluginLogs(pluginId, tail);
 
         return reply.send({

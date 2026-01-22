@@ -1,6 +1,7 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { marketplaceService } from '../services/marketplace.service.js';
 import { dockerService } from '../services/docker.service.js';
+import { embeddedPluginService } from '../services/embedded-plugin.service.js';
 import { logger } from '../utils/logger.js';
 import { GitHubInstallRequest } from '../types/index.js';
 
@@ -173,13 +174,57 @@ export async function marketplaceRoutes(fastify: FastifyInstance) {
           });
         }
 
-        // Install using manifest from marketplace
-        const plugin = await dockerService.installPlugin({
-          manifest: marketplacePlugin.manifest,
-          config,
-          environment,
-          autoStart: autoStart ?? true,
-        });
+        const manifest = marketplacePlugin.manifest;
+        let plugin;
+
+        // Check runtime type - embedded plugins run in-process, container plugins use Docker
+        if (manifest.runtime === 'embedded') {
+          logger.info({ pluginId, name: manifest.name }, 'Installing embedded plugin');
+          
+          // For embedded plugins, we need to fetch the bundled JS code
+          // The bundle URL is constructed from the registry source
+          let moduleCode: string;
+          
+          if (marketplacePlugin.bundleUrl) {
+            // Use explicit bundle URL from registry entry
+            const bundleResponse = await fetch(marketplacePlugin.bundleUrl);
+            if (!bundleResponse.ok) {
+              throw new Error(`Failed to fetch plugin bundle: ${bundleResponse.status}`);
+            }
+            moduleCode = await bundleResponse.text();
+          } else {
+            // Construct bundle URL from registry source base URL
+            // Registry URL format: .../registry.json, plugin at: .../plugins/{id}/index.js
+            const source = await marketplaceService.getSource(marketplacePlugin.sourceId);
+            if (!source?.url) {
+              throw new Error('Cannot determine plugin bundle URL - source not found');
+            }
+            
+            // Get base URL from registry URL (remove registry.json)
+            const baseUrl = source.url.replace(/\/[^/]+$/, '');
+            const bundleUrl = `${baseUrl}/plugins/${pluginId}/index.js`;
+            
+            logger.debug({ bundleUrl }, 'Fetching embedded plugin bundle');
+            
+            const bundleResponse = await fetch(bundleUrl);
+            if (!bundleResponse.ok) {
+              throw new Error(`Failed to fetch plugin bundle from ${bundleUrl}: ${bundleResponse.status}`);
+            }
+            moduleCode = await bundleResponse.text();
+          }
+          
+          // Install using embedded plugin service
+          plugin = await embeddedPluginService.installPlugin(manifest, moduleCode, config);
+        } else {
+          // Container-based plugin - use Docker service
+          logger.info({ pluginId, name: manifest.name }, 'Installing container plugin');
+          plugin = await dockerService.installPlugin({
+            manifest,
+            config,
+            environment,
+            autoStart: autoStart ?? true,
+          });
+        }
 
         return reply.status(201).send({
           id: plugin.id,
@@ -187,6 +232,7 @@ export async function marketplaceRoutes(fastify: FastifyInstance) {
           name: plugin.manifest.name,
           version: plugin.manifest.version,
           status: plugin.status,
+          runtime: manifest.runtime || 'container',
           hostPort: plugin.hostPort,
           source: marketplacePlugin.source,
           message: 'Plugin installed from marketplace',
