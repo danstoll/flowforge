@@ -320,13 +320,26 @@ interface SettingsState {
   setTimeout: (ms: number) => void;
 }
 
-// Use current hostname for API calls (unified app)
-const API_HOST = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
+// Use environment variable or derive from current location
+// VITE_API_BASE_URL can be set to override (e.g., http://10.0.0.115:8000)
+const getDefaultBaseUrl = (): string => {
+  // Check for build-time env var first
+  if (import.meta.env.VITE_API_BASE_URL) {
+    return import.meta.env.VITE_API_BASE_URL;
+  }
+  // Fall back to same-origin (works when served from same host)
+  if (typeof window !== 'undefined') {
+    // Use Kong port 8000 by default, or VITE_API_PORT if specified
+    const port = import.meta.env.VITE_API_PORT || '8000';
+    return `${window.location.protocol}//${window.location.hostname}:${port}`;
+  }
+  return 'http://localhost:8000';
+};
 
 export const useSettingsStore = create<SettingsState>()(
   persist(
     (set) => ({
-      baseUrl: `http://${API_HOST}:8000`,
+      baseUrl: getDefaultBaseUrl(),
       timeout: 30000,
       setBaseUrl: (url) => set({ baseUrl: url }),
       setTimeout: (ms) => set({ timeout: ms }),

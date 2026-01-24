@@ -77,8 +77,8 @@ export const config: Config = {
     portRangeStart: parseInt(process.env.PLUGIN_PORT_RANGE_START || '4001', 10),
     portRangeEnd: parseInt(process.env.PLUGIN_PORT_RANGE_END || '4999', 10),
     networkName: process.env.DOCKER_NETWORK || 'flowforge-backend',
-    volumePrefix: 'forgehook-',
-    containerPrefix: 'forgehook-',
+    volumePrefix: process.env.PLUGIN_VOLUME_PREFIX || 'forgehook-',
+    containerPrefix: process.env.PLUGIN_CONTAINER_PREFIX || 'forgehook-',
   },
 
   staticPath: process.env.STATIC_PATH || './dist/client',

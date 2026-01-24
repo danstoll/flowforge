@@ -1,6 +1,7 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { dockerService } from '../services/docker.service.js';
 import { logger } from '../utils/logger.js';
+import { config } from '../config/index.js';
 import { ForgeHookEndpoint } from '../types/index.js';
 import { requireApiKeyAndIntegration, logApiUsage } from '../middleware/auth.js';
 
@@ -294,8 +295,8 @@ export async function nintexRoutes(fastify: FastifyInstance) {
         }
         
         // Build full URL - use container name and internal port for Docker networking
-        // Container name follows pattern: forgehook-{pluginId}
-        const containerName = `forgehook-${pluginId}`;
+        // Container name follows pattern: {containerPrefix}{pluginId}
+        const containerName = `${config.plugins.containerPrefix}${pluginId}`;
         const internalPort = plugin.manifest.port || 3000;
         
         // Determine basePath - there's a known mismatch for crypto-service:

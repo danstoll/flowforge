@@ -1,6 +1,7 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { dockerService } from '../services/docker.service.js';
 import { embeddedPluginService } from '../services/embedded-plugin.service.js';
+import { gatewayService } from '../services/gateway.service.js';
 import { databaseService } from '../services/database.service.js';
 import { logger } from '../utils/logger.js';
 import { ForgeHookManifest, PluginResponse } from '../types/index.js';
@@ -58,6 +59,7 @@ export async function pluginRoutes(fastify: FastifyInstance) {
       status: plugin.status,
       runtime: plugin.runtime || 'container',
       hostPort: plugin.hostPort ?? 0,
+      gatewayUrl: plugin.gatewayUrl,
       healthStatus: plugin.healthStatus,
       error: plugin.error,
       manifest: plugin.manifest, // Full manifest for Services/Playground pages
@@ -103,6 +105,8 @@ export async function pluginRoutes(fastify: FastifyInstance) {
         status: plugin.status,
         runtime: plugin.runtime || 'container',
         hostPort: plugin.hostPort,
+        gatewayUrl: plugin.gatewayUrl,
+        gatewayHealthPath: plugin.gatewayHealthPath,
         healthStatus: plugin.healthStatus,
         error: plugin.error,
         manifest: plugin.manifest,
@@ -144,24 +148,44 @@ export async function pluginRoutes(fastify: FastifyInstance) {
 
       try {
         const existing = dockerService.getPluginByForgehookId(manifest.id);
-        if (existing) {
+        const existingDb = await databaseService.getPluginByForgehookId(manifest.id);
+        if (existing || existingDb) {
           return reply.status(409).send({
             error: {
               code: 'PLUGIN_EXISTS',
               message: `Plugin ${manifest.id} is already installed`,
-              existingPluginId: existing.id,
+              existingPluginId: existing?.id || existingDb?.id,
             },
           });
         }
 
-        logger.info({ forgehookId: manifest.id }, 'Installing plugin');
+        logger.info({ forgehookId: manifest.id, runtime: manifest.runtime }, 'Installing plugin');
 
-        const plugin = await dockerService.installPlugin({
-          manifest,
-          config,
-          environment,
-          autoStart,
-        });
+        let plugin;
+
+        // Route installation based on runtime type
+        if (manifest.runtime === 'gateway') {
+          plugin = await gatewayService.installPlugin({
+            manifest,
+            config,
+            environment,
+          });
+        } else if (manifest.runtime === 'embedded') {
+          // Embedded plugin installation via embedded service
+          plugin = await embeddedPluginService.installPlugin({
+            manifest,
+            config,
+            environment,
+          });
+        } else {
+          // Default to container (Docker) installation
+          plugin = await dockerService.installPlugin({
+            manifest,
+            config,
+            environment,
+            autoStart,
+          });
+        }
 
         return reply.status(201).send({
           id: plugin.id,
@@ -169,7 +193,9 @@ export async function pluginRoutes(fastify: FastifyInstance) {
           name: plugin.manifest.name,
           version: plugin.manifest.version,
           status: plugin.status,
+          runtime: plugin.runtime,
           hostPort: plugin.hostPort,
+          gatewayUrl: plugin.gatewayUrl,
           message: 'Plugin installed successfully',
         });
 
@@ -211,6 +237,8 @@ export async function pluginRoutes(fastify: FastifyInstance) {
       try {
         if (plugin.runtime === 'embedded') {
           await embeddedPluginService.startPlugin(pluginId);
+        } else if (plugin.runtime === 'gateway') {
+          await gatewayService.startPlugin(pluginId);
         } else {
           await dockerService.startPlugin(pluginId);
         }
@@ -259,6 +287,8 @@ export async function pluginRoutes(fastify: FastifyInstance) {
       try {
         if (plugin.runtime === 'embedded') {
           await embeddedPluginService.stopPlugin(pluginId);
+        } else if (plugin.runtime === 'gateway') {
+          await gatewayService.stopPlugin(pluginId);
         } else {
           await dockerService.stopPlugin(pluginId);
         }
@@ -308,6 +338,9 @@ export async function pluginRoutes(fastify: FastifyInstance) {
         if (plugin.runtime === 'embedded') {
           await embeddedPluginService.stopPlugin(pluginId);
           await embeddedPluginService.startPlugin(pluginId);
+        } else if (plugin.runtime === 'gateway') {
+          await gatewayService.stopPlugin(pluginId);
+          await gatewayService.startPlugin(pluginId);
         } else {
           await dockerService.restartPlugin(pluginId);
         }
@@ -359,6 +392,8 @@ export async function pluginRoutes(fastify: FastifyInstance) {
           await embeddedPluginService.unloadPlugin(plugin.forgehookId);
           // Delete from database
           await databaseService.deletePlugin(pluginId);
+        } else if (plugin.runtime === 'gateway') {
+          await gatewayService.uninstallPlugin(pluginId);
         } else {
           await dockerService.uninstallPlugin(pluginId);
         }
@@ -424,6 +459,16 @@ export async function pluginRoutes(fastify: FastifyInstance) {
               health.details.lastInvoked ? `[${new Date().toISOString()}] Last invoked: ${health.details.lastInvoked}` : null,
               `[${new Date().toISOString()}] Note: Embedded plugins run in-process without Docker containers`,
             ].filter(Boolean),
+          });
+        }
+
+        // Handle gateway plugins
+        if (plugin.runtime === 'gateway') {
+          const logs = await gatewayService.getPluginLogs(pluginId);
+          return reply.send({
+            pluginId,
+            runtime: 'gateway',
+            logs,
           });
         }
 

@@ -2,12 +2,15 @@ import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { logger } from '../utils/logger.js';
 import { databaseService } from '../services/database.service.js';
 import { embeddedPluginService } from '../services/embedded-plugin.service.js';
+import { gatewayService } from '../services/gateway.service.js';
+import { PluginInstance } from '../types/index.js';
 
 /**
  * Plugin Invocation Router
  * Routes plugin API calls to either:
  * - Docker containers (via HTTP proxy)
  * - Embedded plugins (via in-process execution)
+ * - Gateway plugins (via external service proxy)
  */
 export async function pluginInvokeRoutes(fastify: FastifyInstance): Promise<void> {
   /**
@@ -43,6 +46,8 @@ export async function pluginInvokeRoutes(fastify: FastifyInstance): Promise<void
       // Route based on runtime type
       if (plugin.runtime === 'embedded') {
         return await handleEmbeddedInvocation(pluginId, functionName, input, reply);
+      } else if (plugin.runtime === 'gateway') {
+        return await handleGatewayInvocation(plugin, functionName, input, request, reply);
       } else {
         return await handleContainerInvocation(plugin, functionName, input, reply);
       }
@@ -82,6 +87,21 @@ export async function pluginInvokeRoutes(fastify: FastifyInstance): Promise<void
           functions: functions.map(name => ({
             name,
             endpoint: `/api/v1/plugins/${pluginId}/invoke/${name}`,
+          })),
+        });
+      } else if (plugin.runtime === 'gateway') {
+        // Get endpoints from manifest for gateway plugins
+        const endpoints = plugin.manifest.endpoints || [];
+        return reply.send({
+          pluginId,
+          runtime: 'gateway',
+          gatewayUrl: plugin.gatewayUrl,
+          basePath: plugin.manifest.basePath || '',
+          endpoints: endpoints.map(ep => ({
+            method: ep.method,
+            path: ep.path,
+            description: ep.description,
+            proxyUrl: `/api/v1/plugins/${pluginId}/proxy${ep.path}`,
           })),
         });
       } else {
@@ -136,6 +156,11 @@ export async function pluginInvokeRoutes(fastify: FastifyInstance): Promise<void
             message: 'Embedded plugins do not support proxy. Use /invoke/:functionName instead.' 
           },
         });
+      }
+
+      if (plugin.runtime === 'gateway') {
+        // Proxy to external gateway service
+        return await handleGatewayProxy(plugin, path, request, reply);
       }
 
       if (plugin.status !== 'running') {
@@ -204,7 +229,7 @@ async function handleEmbeddedInvocation(
  * Handle invocation for container plugins
  */
 async function handleContainerInvocation(
-  plugin: any,
+  plugin: PluginInstance,
   functionName: string,
   input: unknown,
   reply: FastifyReply
@@ -263,6 +288,121 @@ async function handleContainerInvocation(
       error: {
         code: 'CONTAINER_UNAVAILABLE',
         message: 'Failed to reach plugin container',
+      },
+    });
+  }
+}
+
+/**
+ * Handle invocation for gateway plugins
+ */
+async function handleGatewayInvocation(
+  plugin: PluginInstance,
+  functionName: string,
+  input: unknown,
+  request: FastifyRequest,
+  reply: FastifyReply
+): Promise<FastifyReply> {
+  // Find matching endpoint in manifest
+  const endpoint = plugin.manifest.endpoints?.find(
+    (ep) => ep.path === `/${functionName}` || ep.path === functionName
+  );
+
+  if (!endpoint) {
+    return reply.status(404).send({
+      error: {
+        code: 'FUNCTION_NOT_FOUND',
+        message: `Function ${functionName} not found in plugin ${plugin.forgehookId}`,
+        availableEndpoints: plugin.manifest.endpoints?.map((ep) => ep.path),
+      },
+    });
+  }
+
+  try {
+    const startTime = Date.now();
+    const path = `${plugin.manifest.basePath || ''}${endpoint.path}`;
+    
+    const result = await gatewayService.proxyRequest(plugin.id, {
+      method: endpoint.method,
+      path,
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Request-ID': request.id,
+      },
+      body: endpoint.method !== 'GET' ? input : undefined,
+    });
+
+    const executionTime = Date.now() - startTime;
+
+    if (result.status >= 400) {
+      return reply.status(result.status).send({
+        error: {
+          code: 'GATEWAY_ERROR',
+          message: 'Gateway service returned an error',
+          details: result.body,
+          executionTime,
+        },
+      });
+    }
+
+    return reply.send({
+      success: true,
+      result: result.body,
+      executionTime,
+      runtime: 'gateway',
+      latency: result.latency,
+    });
+
+  } catch (error) {
+    logger.error({ error, pluginId: plugin.forgehookId, functionName }, 'Gateway invocation failed');
+    return reply.status(502).send({
+      error: {
+        code: 'GATEWAY_UNAVAILABLE',
+        message: error instanceof Error ? error.message : 'Failed to reach gateway service',
+      },
+    });
+  }
+}
+
+/**
+ * Handle proxy requests for gateway plugins
+ */
+async function handleGatewayProxy(
+  plugin: PluginInstance,
+  path: string,
+  request: FastifyRequest,
+  reply: FastifyReply
+): Promise<FastifyReply> {
+  try {
+    const result = await gatewayService.proxyRequest(plugin.id, {
+      method: request.method,
+      path: `/${path}`,
+      headers: {
+        'Content-Type': request.headers['content-type'] || 'application/json',
+        'X-Request-ID': request.id,
+        'X-Forwarded-For': request.ip,
+      },
+      body: request.method !== 'GET' && request.method !== 'HEAD' 
+        ? request.body 
+        : undefined,
+    });
+
+    // Set response headers
+    for (const [key, value] of Object.entries(result.headers)) {
+      // Skip certain headers that shouldn't be forwarded
+      if (!['transfer-encoding', 'connection', 'keep-alive'].includes(key.toLowerCase())) {
+        reply.header(key, value);
+      }
+    }
+
+    return reply.status(result.status).send(result.body);
+
+  } catch (error) {
+    logger.error({ error, pluginId: plugin.forgehookId, path }, 'Gateway proxy request failed');
+    return reply.status(502).send({
+      error: { 
+        code: 'GATEWAY_PROXY_ERROR', 
+        message: error instanceof Error ? error.message : 'Failed to proxy request to gateway' 
       },
     });
   }

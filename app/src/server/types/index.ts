@@ -1,6 +1,6 @@
 // ForgeHook Manifest Types
 
-export type PluginRuntime = 'container' | 'embedded';
+export type PluginRuntime = 'container' | 'embedded' | 'gateway';
 
 export interface ForgeHookManifest {
   id: string;
@@ -39,6 +39,17 @@ export interface ForgeHookManifest {
     exports: string[];       // Exported function names
     timeout?: number;        // Execution timeout in ms (default: 5000)
     memoryLimit?: number;    // Memory limit in MB (default: 128)
+  };
+
+  // Gateway plugin fields (required when runtime === 'gateway')
+  gateway?: {
+    baseUrl: string;         // Base URL of external service (supports env vars like ${VAR:-default})
+    healthCheck?: string;    // Health check path (default: /health)
+    timeout?: number;        // Request timeout in ms (default: 30000)
+    retries?: number;        // Number of retries on failure (default: 0)
+    headers?: Record<string, string>; // Default headers to add to proxied requests
+    stripPrefix?: boolean;   // Strip the plugin prefix from proxied paths (default: true)
+    discovery?: 'foundry-local' | 'ollama' | 'lm-studio' | 'manual'; // Auto-discovery type
   };
 
   healthCheck?: {
@@ -156,6 +167,9 @@ export interface PluginInstance {
   moduleLoaded?: boolean;
   moduleExports?: string[];
   moduleCode?: string;
+  // Gateway-specific fields
+  gatewayUrl?: string;       // Resolved base URL for gateway plugins
+  gatewayHealthPath?: string; // Health check path for gateway
   // Version tracking fields
   installedVersion?: string;
   previousVersion?: string;

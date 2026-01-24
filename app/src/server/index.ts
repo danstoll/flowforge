@@ -1,15 +1,27 @@
 import { buildApp } from './app.js';
 import { config } from './config/index.js';
+import { validateConfig } from './config/validation.js';
 import { logger } from './utils/logger.js';
+import { printBanner, logStartupInfo, logConfig, logValidation, logReady } from './utils/startup.js';
 import { databaseService } from './services/database.service.js';
 import { dockerService } from './services/docker.service.js';
 import { registryService } from './services/registry.service.js';
 
 async function main() {
-  logger.info({
-    environment: config.environment,
-    port: config.port,
-  }, 'Starting FlowForge');
+  // ==========================================================================
+  // 0. Startup Banner & Configuration Validation
+  // ==========================================================================
+  printBanner();
+  logStartupInfo(config);
+  logConfig(config);
+  
+  const validation = validateConfig(config);
+  logValidation(validation);
+  
+  if (!validation.valid) {
+    logger.fatal('Configuration validation failed. Exiting.');
+    process.exit(1);
+  }
 
   // ==========================================================================
   // 1. Connect to Database
@@ -100,20 +112,11 @@ async function main() {
       host: '0.0.0.0'
     });
 
-    logger.info({
-      port: config.port,
-      url: `http://localhost:${config.port}`,
-    }, 'FlowForge started successfully');
-
     // Log startup summary
     const plugins = dockerService.listPlugins();
     const runningPlugins = plugins.filter(p => p.status === 'running').length;
 
-    logger.info({
-      totalPlugins: plugins.length,
-      runningPlugins,
-      stoppedPlugins: plugins.length - runningPlugins,
-    }, 'FlowForge ready');
+    logReady(config, { totalPlugins: plugins.length, runningPlugins });
 
   } catch (error) {
     logger.error({ error }, 'Failed to start server');
