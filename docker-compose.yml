@@ -57,8 +57,12 @@ services:
       NODE_ENV: ${NODE_ENV:-production}
       PORT: 3000
       
-      # PostgreSQL (required)
-      DATABASE_URL: postgres://${POSTGRES_USER:-flowforge}:${POSTGRES_PASSWORD:-flowforge_password}@postgres:5432/${POSTGRES_DB:-flowforge}
+      # PostgreSQL (required) - use container hostname
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: ${POSTGRES_USER:-flowforge}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-flowforge_password}
+      POSTGRES_DB: ${POSTGRES_DB:-flowforge}
       
       # Docker socket for plugin container management
       DOCKER_SOCKET_PATH: /var/run/docker.sock

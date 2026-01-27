@@ -43,6 +43,8 @@ function calculateSize(dataLength: number, version?: number): number {
 }
 
 function addFinderPattern(matrix: boolean[][], startRow: number, startCol: number): void {
+  const size = matrix.length;
+  
   for (let row = 0; row < 7; row++) {
     for (let col = 0; col < 7; col++) {
       const isOuter = row === 0 || row === 6 || col === 0 || col === 6;
@@ -51,9 +53,12 @@ function addFinderPattern(matrix: boolean[][], startRow: number, startCol: numbe
     }
   }
   
+  // Add separator (white border) around finder pattern
   for (let i = 0; i < 8; i++) {
-    if (startRow + 7 < matrix.length) matrix[startRow + 7][startCol + i] = false;
-    if (startCol + 7 < matrix.length) matrix[startRow + i][startCol + 7] = false;
+    const sepRow = startRow + 7;
+    const sepCol = startCol + 7;
+    if (sepRow < size && startCol + i < size) matrix[sepRow][startCol + i] = false;
+    if (startRow + i < size && sepCol < size) matrix[startRow + i][sepCol] = false;
   }
 }
 
