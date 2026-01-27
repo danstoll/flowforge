@@ -135,23 +135,23 @@ docker-compose -f docker-compose.yml -f docker-compose.dev.yml up
 
 ```
 flowforge/
+├── app/              # Unified full-stack application
+│   ├── src/
+│   │   ├── client/   # React frontend
+│   │   └── server/   # Fastify backend
+│   └── migrations/   # Database migrations
 ├── gateway/          # Kong API Gateway configuration
-├── services/         # Microservices
+├── services/         # Bundled microservices
 │   ├── crypto-service/
-│   ├── math-service/
-│   ├── pdf-service/
-│   ├── ocr-service/
-│   ├── image-service/
 │   ├── llm-service/
-│   ├── vector-service/
-│   └── data-transform-service/
-├── web-ui/           # React dashboard
+│   └── math-service/
 ├── sdk/              # Client SDKs
-├── integrations/     # Platform integrations
 ├── infrastructure/   # Docker configs
 ├── docs/             # Documentation
 └── scripts/          # Utility scripts
 ```
+
+> **Note**: Additional services (PDF, OCR, Image, Vector, Data Transform) are available as plugins from the [ForgeHooks Registry](https://github.com/danstoll/forgehooks-registry) and deployed dynamically.
 
 ## 🛠️ Technology Stack
 
