@@ -39,7 +39,7 @@ interface ThemeState {
 export const useThemeStore = create<ThemeState>()(
   persist(
     (set) => ({
-      isDark: false,
+      isDark: true,
       toggle: () => set((state) => {
         const newDark = !state.isDark;
         document.documentElement.classList.toggle('dark', newDark);
@@ -52,6 +52,12 @@ export const useThemeStore = create<ThemeState>()(
     }),
     {
       name: 'flowforge-theme',
+      onRehydrateStorage: () => (state) => {
+        // Apply theme on initial load
+        if (state) {
+          document.documentElement.classList.toggle('dark', state.isDark);
+        }
+      },
     }
   )
 );

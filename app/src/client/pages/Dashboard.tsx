@@ -168,27 +168,29 @@ function StatsCard({
   loading?: boolean;
 }) {
   return (
-    <Card>
+    <Card className="bg-white/5 border-white/10 backdrop-blur-sm hover:bg-white/[0.07] transition-all">
       <CardContent className="pt-6">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm text-muted-foreground">{title}</p>
+            <p className="text-sm text-gray-400">{title}</p>
             {loading ? (
               <Skeleton className="h-8 w-20 mt-1" />
             ) : (
-              <p className="text-2xl font-bold">{value}</p>
+              <p className="text-2xl font-bold text-white">{value}</p>
             )}
             {trend && !loading && (
               <div className={cn(
                 'flex items-center gap-1 text-xs mt-1',
-                trend.positive ? 'text-green-500' : 'text-red-500'
+                trend.positive ? 'text-emerald-400' : 'text-red-400'
               )}>
                 <TrendingUp className={cn('w-3 h-3', !trend.positive && 'rotate-180')} />
                 {trend.value}% from yesterday
               </div>
             )}
           </div>
-          <Icon className="w-8 h-8 text-muted-foreground" />
+          <div className="p-3 rounded-xl bg-gradient-to-br from-indigo-500/20 to-violet-500/20">
+            <Icon className="w-6 h-6 text-indigo-400" />
+          </div>
         </div>
       </CardContent>
     </Card>
@@ -332,14 +334,23 @@ export default function Dashboard() {
   const runningCount = plugins.filter(p => p.status === 'running').length;
 
   return (
-    <div>
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold">Dashboard</h1>
-        <p className="text-muted-foreground mt-1">Monitor your FlowForge services</p>
+    <div className="space-y-8">
+      {/* Hero Section */}
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 border border-white/10 p-8">
+        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmZmZmYiIGZpbGwtb3BhY2l0eT0iMC4wMyI+PGNpcmNsZSBjeD0iMSIgY3k9IjEiIHI9IjEiLz48L2c+PC9nPjwvc3ZnPg==')] opacity-50" />
+        <div className="absolute -top-24 -right-24 w-96 h-96 bg-gradient-to-br from-indigo-500/20 to-violet-500/20 rounded-full blur-3xl" />
+        <div className="relative">
+          <h1 className="text-4xl font-bold text-white mb-2">
+            Welcome to <span className="bg-gradient-to-r from-indigo-400 to-violet-400 bg-clip-text text-transparent">FlowForge</span>
+          </h1>
+          <p className="text-gray-400 text-lg max-w-xl">
+            Monitor your services, manage plugins, and build powerful integrations with enterprise-grade APIs.
+          </p>
+        </div>
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatsCard 
           title="Installed Plugins" 
           value={pluginsLoading ? '--' : plugins.length} 
@@ -365,7 +376,7 @@ export default function Dashboard() {
         />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Recent Activity - Takes 2 columns */}
         <div className="lg:col-span-2">
           <RecentActivityLog />
@@ -378,53 +389,59 @@ export default function Dashboard() {
       </div>
 
       {/* Plugins Grid */}
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xl font-semibold">Plugin Health</h2>
-        <Link to="/plugins">
-          <Button variant="ghost" size="sm">
-            View All <ArrowRight className="w-4 h-4 ml-1" />
-          </Button>
-        </Link>
-      </div>
-      {pluginsLoading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {[1, 2, 3, 4].map((i) => (
-            <Card key={i} className="animate-pulse">
-              <CardHeader className="pb-2">
-                <div className="flex items-center gap-3">
-                  <Skeleton className="w-9 h-9 rounded-lg" />
-                  <div className="space-y-2">
-                    <Skeleton className="h-4 w-24" />
-                    <Skeleton className="h-3 w-16" />
+      <div>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-semibold">Plugin Health</h2>
+          <Link to="/plugins">
+            <Button variant="ghost" size="sm" className="hover:bg-white/5">
+              View All <ArrowRight className="w-4 h-4 ml-1" />
+            </Button>
+          </Link>
+        </div>
+        {pluginsLoading ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {[1, 2, 3, 4].map((i) => (
+              <Card key={i} className="animate-pulse bg-white/5 border-white/10">
+                <CardHeader className="pb-2">
+                  <div className="flex items-center gap-3">
+                    <Skeleton className="w-9 h-9 rounded-lg" />
+                    <div className="space-y-2">
+                      <Skeleton className="h-4 w-24" />
+                      <Skeleton className="h-3 w-16" />
+                    </div>
                   </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <Skeleton className="h-4 w-full" />
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      ) : plugins.length === 0 ? (
-        <Card>
-          <CardContent className="py-12 text-center">
-            <Package className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-            <h3 className="font-semibold">No plugins installed</h3>
-            <p className="text-muted-foreground mb-4">
-              Install plugins from the marketplace to get started.
-            </p>
-            <Link to="/marketplace">
-              <Button>Browse Marketplace</Button>
-            </Link>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {plugins.map((plugin) => (
-            <PluginHealthCard key={plugin.id} plugin={plugin} />
-          ))}
-        </div>
-      )}
+                </CardHeader>
+                <CardContent>
+                  <Skeleton className="h-4 w-full" />
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ) : plugins.length === 0 ? (
+          <Card className="bg-gradient-to-br from-gray-900/50 to-gray-800/50 border-white/10">
+            <CardContent className="py-12 text-center">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-indigo-500/20 to-violet-500/20 flex items-center justify-center">
+                <Package className="w-8 h-8 text-indigo-400" />
+              </div>
+              <h3 className="font-semibold text-lg">No plugins installed</h3>
+              <p className="text-muted-foreground mb-6">
+                Install plugins from the marketplace to get started.
+              </p>
+              <Link to="/marketplace">
+                <Button className="bg-gradient-to-r from-indigo-500 to-violet-500 hover:from-indigo-600 hover:to-violet-600 text-white border-0">
+                  Browse Marketplace
+                </Button>
+              </Link>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {plugins.map((plugin) => (
+              <PluginHealthCard key={plugin.id} plugin={plugin} />
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
