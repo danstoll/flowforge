@@ -8,6 +8,7 @@ import ApiKeys from './pages/ApiKeys';
 import Documentation from './pages/Documentation';
 import Marketplace from './pages/Marketplace';
 import InstalledPlugins from './pages/InstalledPlugins';
+import Integrations from './pages/Integrations';
 import SSLSettings from './pages/SSLSettings';
 import { useThemeStore } from './store';
 import { Toaster } from './components/ui/toaster';
@@ -103,6 +104,7 @@ export default function App() {
           <Route path="services" element={<Services />} />
           <Route path="marketplace" element={<Marketplace />} />
           <Route path="plugins" element={<InstalledPlugins />} />
+          <Route path="integrations" element={<Integrations />} />
           <Route path="playground" element={<Playground />} />
           <Route path="api-keys" element={<ApiKeys />} />
           <Route path="ssl" element={<SSLSettings />} />
