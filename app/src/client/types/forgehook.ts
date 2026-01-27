@@ -73,7 +73,7 @@ export interface InstalledPlugin {
   version: string;
   description?: string;
   status: PluginStatus;
-  runtime?: 'container' | 'embedded';
+  runtime?: 'container' | 'embedded' | 'core';
   hostPort?: number;
   assignedPort?: number;
   containerId?: string;

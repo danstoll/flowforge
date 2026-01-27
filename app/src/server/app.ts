@@ -21,6 +21,7 @@ import utilsRoutes from './routes/utils.js';
 import { dockerService } from './services/docker.service.js';
 import { marketplaceService } from './services/marketplace.service.js';
 import { embeddedPluginService } from './services/embedded-plugin.service.js';
+import { corePluginService } from './services/core-plugin.service.js';
 
 export async function buildApp(): Promise<FastifyInstance> {
   const app = Fastify({
@@ -135,6 +136,9 @@ export async function buildApp(): Promise<FastifyInstance> {
 
   // Initialize marketplace service
   await marketplaceService.initialize();
+
+  // Initialize core plugins (built-in plugins that are always available)
+  await corePluginService.initialize();
 
   // Initialize embedded plugin service (load any installed embedded plugins)
   logger.info('Initializing embedded plugin service');

@@ -21,6 +21,7 @@ import {
   ArrowDownToLine,
   Container,
   Code2,
+  Cpu,
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -121,8 +122,9 @@ function PluginRow({ plugin }: { plugin: InstalledPlugin }) {
   const categoryInfo = plugin.manifest?.category ? CATEGORY_INFO[plugin.manifest.category] : null;
   const pluginName = plugin.manifest?.name || plugin.name || plugin.forgehookId;
   
-  // Check if this is an embedded plugin
-  const isEmbedded = plugin.runtime === 'embedded';
+  // Check if this is an embedded or core plugin (no container management needed)
+  const isEmbedded = plugin.runtime === 'embedded' || plugin.runtime === 'core';
+  const isCore = plugin.runtime === 'core';
   
   const handleStart = async () => {
     try {
@@ -260,18 +262,24 @@ function PluginRow({ plugin }: { plugin: InstalledPlugin }) {
                         'gap-1 text-xs px-1.5 py-0',
                         plugin.runtime === 'container' 
                           ? 'border-blue-500/50 bg-blue-500/10 text-blue-600' 
+                          : plugin.runtime === 'core'
+                          ? 'border-indigo-500/50 bg-indigo-500/10 text-indigo-600'
                           : 'border-purple-500/50 bg-purple-500/10 text-purple-600'
                       )}
                       title={plugin.runtime === 'container' 
                         ? 'Container: Runs in isolated Docker container' 
+                        : plugin.runtime === 'core'
+                        ? 'Core: Built into FlowForge - always available'
                         : 'Embedded: Runs in-process for lower latency'}
                     >
                       {plugin.runtime === 'container' ? (
                         <Container className="w-3 h-3" />
+                      ) : plugin.runtime === 'core' ? (
+                        <Cpu className="w-3 h-3" />
                       ) : (
                         <Code2 className="w-3 h-3" />
                       )}
-                      {plugin.runtime === 'container' ? 'Container' : 'Embedded'}
+                      {plugin.runtime === 'container' ? 'Container' : plugin.runtime === 'core' ? 'Core' : 'Embedded'}
                     </Badge>
                   )}
                 </div>
@@ -351,19 +359,25 @@ function PluginRow({ plugin }: { plugin: InstalledPlugin }) {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => setShowUpdate(true)}>
-                      <RefreshCw className="w-4 h-4 mr-2" />
-                      Update Plugin
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setShowHistory(true)}>
-                      <History className="w-4 h-4 mr-2" />
-                      Update History
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => setShowLogs(true)}>
-                      <Terminal className="w-4 h-4 mr-2" />
-                      View Logs
-                    </DropdownMenuItem>
+                    {!isCore && (
+                      <>
+                        <DropdownMenuItem onClick={() => setShowUpdate(true)}>
+                          <RefreshCw className="w-4 h-4 mr-2" />
+                          Update Plugin
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setShowHistory(true)}>
+                          <History className="w-4 h-4 mr-2" />
+                          Update History
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                      </>
+                    )}
+                    {!isCore && (
+                      <DropdownMenuItem onClick={() => setShowLogs(true)}>
+                        <Terminal className="w-4 h-4 mr-2" />
+                        View Logs
+                      </DropdownMenuItem>
+                    )}
                     <DropdownMenuItem>
                       <Settings className="w-4 h-4 mr-2" />
                       Configure
@@ -372,14 +386,18 @@ function PluginRow({ plugin }: { plugin: InstalledPlugin }) {
                       <Activity className="w-4 h-4 mr-2" />
                       Metrics
                     </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem 
-                      className="text-red-600"
-                      onClick={() => setShowUninstall(true)}
-                    >
-                      <Trash2 className="w-4 h-4 mr-2" />
-                      Uninstall
-                    </DropdownMenuItem>
+                    {!isCore && (
+                      <>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem 
+                          className="text-red-600"
+                          onClick={() => setShowUninstall(true)}
+                        >
+                          <Trash2 className="w-4 h-4 mr-2" />
+                          Uninstall
+                        </DropdownMenuItem>
+                      </>
+                    )}
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>

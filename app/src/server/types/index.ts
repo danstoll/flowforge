@@ -1,6 +1,6 @@
 // ForgeHook Manifest Types
 
-export type PluginRuntime = 'container' | 'embedded' | 'gateway';
+export type PluginRuntime = 'container' | 'embedded' | 'gateway' | 'core';
 
 export interface ForgeHookManifest {
   id: string;
