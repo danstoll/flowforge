@@ -12,10 +12,10 @@ CREATE TABLE IF NOT EXISTS ssl_certificates (
   
   -- Certificate metadata (extracted from cert)
   common_name VARCHAR(255),           -- CN from certificate
-  issuer VARCHAR(255),                -- Certificate issuer
+  issuer VARCHAR(512),                -- Certificate issuer (can be long)
   valid_from TIMESTAMPTZ,
   valid_until TIMESTAMPTZ,
-  fingerprint VARCHAR(64),            -- SHA-256 fingerprint
+  fingerprint VARCHAR(128),           -- SHA-256 fingerprint with colons
   
   -- Audit fields
   created_at TIMESTAMPTZ DEFAULT NOW(),
