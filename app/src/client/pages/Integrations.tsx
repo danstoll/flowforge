@@ -472,8 +472,11 @@ export default function Integrations() {
   const [selectedPlatform, setSelectedPlatform] = useState<PlatformConnector | null>(null);
   const [search, setSearch] = useState('');
 
-  const { data: integrations, isLoading } = useIntegrations();
+  const { data: integrations, isLoading, error } = useIntegrations();
   const { data: pluginsData } = useInstalledPlugins();
+
+  // Debug logging
+  console.log('Integrations data:', integrations, 'isLoading:', isLoading, 'error:', error);
 
   const installedPluginIds = pluginsData?.plugins?.map((p) => p.forgehookId) || [];
 
@@ -552,6 +555,14 @@ export default function Integrations() {
               </CardContent>
             </Card>
           ))}
+        </div>
+      ) : error ? (
+        <div className="text-center py-12">
+          <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+          <h3 className="font-medium text-red-500">Failed to load integrations</h3>
+          <p className="text-sm text-muted-foreground mt-1">
+            {error instanceof Error ? error.message : 'Unknown error'}
+          </p>
         </div>
       ) : (
         <>
