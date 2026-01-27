@@ -327,7 +327,7 @@ interface SettingsState {
 }
 
 // Use environment variable or derive from current location
-// VITE_API_BASE_URL can be set to override (e.g., http://10.0.0.115:8000)
+// VITE_API_BASE_URL can be set to override (e.g., http://10.0.0.166:8000)
 const getDefaultBaseUrl = (): string => {
   // Check for build-time env var first
   if (import.meta.env.VITE_API_BASE_URL) {

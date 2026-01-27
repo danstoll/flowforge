@@ -72,11 +72,11 @@ npm run dev
 ```
 
 ### Production (Remote Server)
-Server: `dan@10.0.0.115:/home/dan/flowforge`
+Server: `dan@10.0.0.166:/home/dan/flowforge`
 
 Deploy workflow:
 1. Push changes to git
-2. SSH and pull: `ssh dan@10.0.0.115 "cd /home/dan/flowforge && git pull"`
+2. SSH and pull: `ssh dan@10.0.0.166 "cd /home/dan/flowforge && git pull"`
 3. Rebuild: `docker compose up -d --build app`
 
 ### Docker Compose Services

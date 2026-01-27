@@ -37,7 +37,7 @@ This guide covers deploying FlowForge to various environments.
 
 | Setting | Value |
 | ------- | ----- |
-| **IP Address** | `10.0.0.115` |
+| **IP Address** | `10.0.0.166` |
 | **SSH User** | `dan` |
 | **SSH Port** | 22 (default) |
 | **SSH Key** | Uses SSH key authentication (no password needed for SSH) |
@@ -47,55 +47,55 @@ This guide covers deploying FlowForge to various environments.
 
 ```bash
 # SSH to development server (uses SSH key)
-ssh dan@10.0.0.115
+ssh dan@10.0.0.166
 
 # Check running containers
-ssh dan@10.0.0.115 "sudo docker ps"
+ssh dan@10.0.0.166 "sudo docker ps"
 
 # View plugin manager logs
-ssh dan@10.0.0.115 "sudo docker logs flowforge-plugin-manager -f"
+ssh dan@10.0.0.166 "sudo docker logs flowforge-plugin-manager -f"
 
 # Restart plugin manager
-ssh dan@10.0.0.115 "sudo docker restart flowforge-plugin-manager"
+ssh dan@10.0.0.166 "sudo docker restart flowforge-plugin-manager"
 ```
 
 ### Service URLs (from dev server)
 
 | Service | URL |
 | ------- | --- |
-| Plugin Manager API | `http://10.0.0.115:4000` |
-| Web UI | `http://10.0.0.115:3000` |
-| Kong Gateway | `http://10.0.0.115:8000` |
-| Kong Admin | `http://10.0.0.115:8001` |
-| PostgreSQL | `10.0.0.115:5432` |
-| Redis | `10.0.0.115:6379` |
+| Plugin Manager API | `http://10.0.0.166:4000` |
+| Web UI | `http://10.0.0.166:3000` |
+| Kong Gateway | `http://10.0.0.166:8000` |
+| Kong Admin | `http://10.0.0.166:8001` |
+| PostgreSQL | `10.0.0.166:5432` |
+| Redis | `10.0.0.166:6379` |
 
 ### Deploying Updates
 
 ```bash
 # Copy updated source files to server
-scp -r ./app/src/client/hooks/*.ts dan@10.0.0.115:~/flowforge/app/src/client/hooks/
-scp -r ./app/src/client/pages/*.tsx dan@10.0.0.115:~/flowforge/app/src/client/pages/
-scp -r ./app/src/client/components/ui/*.tsx dan@10.0.0.115:~/flowforge/app/src/client/components/ui/
+scp -r ./app/src/client/hooks/*.ts dan@10.0.0.166:~/flowforge/app/src/client/hooks/
+scp -r ./app/src/client/pages/*.tsx dan@10.0.0.166:~/flowforge/app/src/client/pages/
+scp -r ./app/src/client/components/ui/*.tsx dan@10.0.0.166:~/flowforge/app/src/client/components/ui/
 
 # Rebuild Docker image on server
-ssh dan@10.0.0.115 "cd ~/flowforge/app && docker build -t flowforge:latest ."
+ssh dan@10.0.0.166 "cd ~/flowforge/app && docker build -t flowforge:latest ."
 
 # Restart container with new image
-ssh dan@10.0.0.115 "docker stop flowforge-api && docker rm flowforge-api && docker run -d --name flowforge-api --network flowforge-network -p 4000:4000 -e POSTGRES_HOST=flowforge-postgres -e POSTGRES_PASSWORD=flowforge_password -v /var/run/docker.sock:/var/run/docker.sock -v flowforge_plugin_data:/app/data flowforge:latest"
+ssh dan@10.0.0.166 "docker stop flowforge-api && docker rm flowforge-api && docker run -d --name flowforge-api --network flowforge-network -p 4000:4000 -e POSTGRES_HOST=flowforge-postgres -e POSTGRES_PASSWORD=flowforge_password -v /var/run/docker.sock:/var/run/docker.sock -v flowforge_plugin_data:/app/data flowforge:latest"
 
 # Verify deployment
-Invoke-RestMethod -Uri "http://10.0.0.115:4000/health"
+Invoke-RestMethod -Uri "http://10.0.0.166:4000/health"
 ```
 
 ### Database Access
 
 ```bash
 # Connect to PostgreSQL
-ssh dan@10.0.0.115 "sudo docker exec -it flowforge-postgres psql -U flowforge -d flowforge"
+ssh dan@10.0.0.166 "sudo docker exec -it flowforge-postgres psql -U flowforge -d flowforge"
 
 # Database credentials (development only)
-# Host: flowforge-postgres (internal) or 10.0.0.115 (external)
+# Host: flowforge-postgres (internal) or 10.0.0.166 (external)
 # User: flowforge
 # Password: flowforge_password
 # Database: flowforge

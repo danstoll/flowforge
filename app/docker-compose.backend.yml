@@ -1,7 +1,7 @@
 version: '3.8'
 
 # Backend-only deployment for remote development
-# Deploy this to 10.0.0.115 while developing UI locally
+# Deploy this to 10.0.0.166 while developing UI locally
 
 services:
   # ==========================================================================

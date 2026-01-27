@@ -1,7 +1,7 @@
 # Deploy FlowForge Unified Architecture to Remote Server
 # PowerShell version
 
-$REMOTE_HOST = "dan@10.0.0.115"
+$REMOTE_HOST = "dan@10.0.0.166"
 $REMOTE_DIR = "~/flowforge"
 
 Write-Host "🚀 Deploying FlowForge Unified Architecture to $REMOTE_HOST" -ForegroundColor Green
@@ -55,7 +55,7 @@ Write-Host ""
 Write-Host "🧪 Step 5: Testing health endpoint..." -ForegroundColor Cyan
 Start-Sleep -Seconds 5
 try {
-    $response = Invoke-WebRequest -Uri "http://10.0.0.115:3000/api/v1/health" -UseBasicParsing
+    $response = Invoke-WebRequest -Uri "http://10.0.0.166:3000/api/v1/health" -UseBasicParsing
     Write-Host "✅ Health check passed!" -ForegroundColor Green
     Write-Host $response.Content
 } catch {
@@ -70,6 +70,6 @@ Write-Host ""
 
 Write-Host "✅ Deployment complete!" -ForegroundColor Green
 Write-Host ""
-Write-Host "🌐 Access FlowForge at: http://10.0.0.115:3000" -ForegroundColor Yellow
+Write-Host "🌐 Access FlowForge at: http://10.0.0.166:3000" -ForegroundColor Yellow
 Write-Host "📊 View logs: docker context use flowforge-remote && docker logs flowforge -f"
 Write-Host "🔍 Check status: docker context use flowforge-remote && docker compose -f docker-compose.unified.yml ps"
