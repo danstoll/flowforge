@@ -8,6 +8,19 @@ import { useAuthStore, useApiCallHistoryStore, useSettingsStore } from '@/store'
 const getBaseUrl = () => useSettingsStore.getState().baseUrl;
 const getTimeout = () => useSettingsStore.getState().timeout;
 
+// Generate UUID (fallback for non-secure contexts like HTTP)
+function generateUUID(): string {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+  // Fallback UUID v4 generator
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === 'x' ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
+
 export const api = axios.create({
   timeout: 30000,
   headers: {
@@ -29,7 +42,7 @@ api.interceptors.request.use((config) => {
     config.headers['X-API-Key'] = apiKey;
   }
   // Add request ID for tracking
-  config.headers['X-Request-ID'] = crypto.randomUUID();
+  config.headers['X-Request-ID'] = generateUUID();
   return config;
 });
 
