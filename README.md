@@ -22,13 +22,13 @@ FlowForge provides a unified microservices backend that extends the capabilities
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
-│                         Workflow Tools                               │
-│              (n8n, Make, Zapier, Custom Apps)                       │
+│                         Workflow Tools                              │
+│            (n8n, Outsystems, Zapier, K2, Nintex, Custom Apps etc)   │
 └─────────────────────────────┬───────────────────────────────────────┘
                               │
                               ▼
 ┌─────────────────────────────────────────────────────────────────────┐
-│                     Kong API Gateway                                 │
+│                     Kong API Gateway                                │
 │         (Rate Limiting, Auth, Load Balancing, OpenAPI)              │
 │                        :8000 / :8001                                │
 └─────────────────────────────┬───────────────────────────────────────┘
